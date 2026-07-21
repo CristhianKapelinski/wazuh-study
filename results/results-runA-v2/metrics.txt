@@ -1,0 +1,15 @@
+=== severidade_manual (gold) vs severidade_wazuh_llm ===
+n=1000  accuracy=0.5890  macro_f1=0.3616  weighted_f1=0.6646
+class            P       R      F1  support
+none         1.000   0.581   0.735      644
+low          0.000   0.000   0.000       92
+medium       0.693   0.815   0.749      249
+high         0.203   0.800   0.324       15
+critical     0.000   0.000   0.000        0
+confusion (rows=gold, columns=prediction):
+                none       low    medium      high  critical
+      none       374       270         0         0         0
+       low         0         0        90         2         0
+    medium         0         0       203        45         1
+      high         0         3         0        12         0
+  critical         0         0         0         0         0

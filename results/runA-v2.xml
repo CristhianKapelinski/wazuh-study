@@ -1,0 +1,245 @@
+<group name="acme-lab,local,">
+
+  <!-- =====================================================================
+       BLOCO 1 — GEOGRAFIA / FAIXAS NÃO INSTITUCIONAIS
+       Princípio: acesso legítimo vem EXCLUSIVAMENTE das faixas BR
+       institucionais (203.0.113.0/24, 203.0.113.0/24). Qualquer
+       atividade SSH originada FORA dessas faixas é, por definição da
+       equipe, anômala. Geografia é o "fator mais forte".
+       ===================================================================== -->
+
+  <!-- Falha de autenticação SSH originada fora das faixas institucionais.
+       Nativa 5716/5760 = level 5 (médio). Como geografia é o fator mais
+       forte e o IP é externo à organização, eleva-se para alto (10). -->
+  <rule id="100001" level="10">
+    <if_sid>5716,5760</if_sid>
+    <srcip negate="yes">203.0.113.0/24|203.0.113.0/24</srcip>
+    <description>SSH: falha de autenticacao originada fora das faixas BR institucionais da ACME-LAB.</description>
+    <group>authentication_failed,invalid_login,geo_anomaly,</group>
+  </rule>
+
+  <!-- Tentativa de login SSH com usuário inexistente vinda de fora das
+       faixas institucionais. Nativa 5710 = 5. Geografia eleva para alto. -->
+  <rule id="100002" level="10">
+    <if_sid>5710</if_sid>
+    <srcip negate="yes">203.0.113.0/24|203.0.113.0/24</srcip>
+    <description>SSH: tentativa de login com usuario inexistente a partir de IP fora das faixas BR institucionais.</description>
+    <group>invalid_login,geo_anomaly,</group>
+  </rule>
+
+  <!-- AUTENTICAÇÃO SSH BEM-SUCEDIDA fora das faixas institucionais.
+       Impacto efetivo (sessão estabelecida) + geografia anômala =
+       cenário crítico. Princípio "impacto efetivo importa mais que
+       tentativa" justifica saltar de level 3 (nativa 5715) para 13. -->
+  <rule id="100003" level="13">
+    <if_sid>5715</if_sid>
+    <srcip negate="yes">203.0.113.0/24|203.0.113.0/24</srcip>
+    <description>SSH: autenticacao BEM-SUCEDIDA a partir de IP fora das faixas BR institucionais (possivel comprometimento).</description>
+    <group>authentication_success,geo_anomaly,intrusion,</group>
+  </rule>
+
+  <!-- =====================================================================
+       BLOCO 2 — CORRELAÇÃO / VOLUME DA MESMA ORIGEM
+       Princípio: volume/repetição da mesma origem é significativo.
+       O ruleset nativo já cobre brute-force genérico (5712/5720/5763 = 10).
+       Aqui agregamos correlações que o nativo não cobre com o peso da
+       geografia institucional.
+       ===================================================================== -->
+
+  <!-- Brute-force SSH (nativa 5720) vindo de fora das faixas institucionais.
+       Geografia + persistência elevam de 10 (alto) para 13 (crítico). -->
+  <rule id="100004" level="13">
+    <if_sid>5720,5712,5763</if_sid>
+    <srcip negate="yes">203.0.113.0/24|203.0.113.0/24</srcip>
+    <description>SSH: brute force a partir de IP fora das faixas BR institucionais.</description>
+    <group>authentication_failures,brute_force,geo_anomaly,</group>
+  </rule>
+
+  <!-- Brute-force de baixa-e-lenta: 10 falhas SSH da MESMA origem em 10 min.
+       Threshold escolhido para capturar varreduras pacientes que escapam
+       das janelas curtas do ruleset nativo (5720 usa ~6/120s). Janela maior
+       reflete o uso 24/7 (horário não eleva, mas persistência sim). -->
+  <rule id="100005" level="10" frequency="10" timeframe="600">
+    <if_matched_sid>5716</if_matched_sid>
+    <same_srcip />
+    <description>SSH: brute force de baixa-e-lenta (10 falhas da mesma origem em 10 minutos).</description>
+    <group>authentication_failures,brute_force,</group>
+  </rule>
+
+  <!-- Reconhecimento por enumeração de usuários: 8 tentativas a usuários
+       inexistentes da MESMA origem em 5 min. Indica scan/enum, não acerto
+       a credencial real. Threshold 8/300s para ficar abaixo do ruído de
+       scans isolados mas pegar enumeração sistemática. -->
+  <rule id="100006" level="10" frequency="8" timeframe="300">
+    <if_matched_sid>5710</if_matched_sid>
+    <same_srcip />
+    <description>SSH: enumeracao de usuarios (8 tentativas a usuarios inexistentes da mesma origem em 5 min).</description>
+    <group>invalid_login,recon,</group>
+  </rule>
+
+  <!-- Brute-force seguido de SUCESSO: a MESMA origem que falhou várias
+       vezes em 5716 acaba autenticando (5715). Cenário clássico de
+       credential stuffing bem-sucedido. Impacto efetivo => crítico.
+       Threshold 1/600s no sucesso após o histórico de falhas. -->
+  <rule id="100007" level="14" frequency="1" timeframe="600">
+    <if_matched_sid>5716</if_matched_sid>
+    <if_sid>5715</if_sid>
+    <same_srcip />
+    <description>SSH: autenticacao bem-sucedida apos sequencia de falhas da mesma origem (possivel credential stuffing efetivo).</description>
+    <group>authentication_success,brute_force,intrusion,</group>
+  </rule>
+
+  <!-- Distribuição: várias origens diferentes falhando contra o MESMO
+       usuário em janela curta indica password spraying. 6 IPs diferentes
+       em 10 min sobre o mesmo dstuser. -->
+  <rule id="100008" level="12" frequency="6" timeframe="600">
+    <if_matched_sid>5716</if_matched_sid>
+    <same_user />
+    <different_srcip />
+    <description>SSH: possivel password spraying (mesmo usuario alvo, multiplas origens, 6 IPs em 10 min).</description>
+    <group>authentication_failures,password_spraying,</group>
+  </rule>
+
+  <!-- =====================================================================
+       BLOCO 3 — CONTAS PRIVILEGIADAS / ROOT
+       Princípio: impacto efetivo > tentativa. Acesso a root, mesmo
+       legítimo, é evento sensível em servidor de pesquisa.
+       ===================================================================== -->
+
+  <!-- Tentativa de login SSH direto como root vinda de fora das faixas
+       institucionais. Em servidor acadêmico, root remoto externo é
+       sempre crítico, mesmo como tentativa. -->
+  <rule id="100010" level="13">
+    <if_sid>5710,5716,5760</if_sid>
+    <dstuser>root</dstuser>
+    <srcip negate="yes">203.0.113.0/24|203.0.113.0/24</srcip>
+    <description>SSH: tentativa de login como root a partir de IP fora das faixas BR institucionais.</description>
+    <group>authentication_failed,root_access,geo_anomaly,</group>
+  </rule>
+
+  <!-- Login SSH bem-sucedido como root a partir de qualquer origem.
+       Mesmo da rede institucional, root remoto direto é prática de
+       risco; combinado com a nativa 2504 (illegal root login = 9),
+       aqui reforçamos com level 12 quando ocorre via sshd. -->
+  <rule id="100011" level="12">
+    <if_sid>5715</if_sid>
+    <dstuser>root</dstuser>
+    <description>SSH: login bem-sucedido como root (sessao root remota via sshd).</description>
+    <group>authentication_success,root_access,</group>
+  </rule>
+
+  <!-- Múltiplas falhas de sudo da mesma origem encadeando a nativa 5404
+       (3 failed sudo = 10). Repetição em janela maior reforça intenção
+       de escalada. 2 disparos de 5404 em 30 min da mesma origem. -->
+  <rule id="100012" level="12" frequency="2" timeframe="1800">
+    <if_matched_sid>5404</if_matched_sid>
+    <same_srcip />
+    <description>SSH: padrao recorrente de falhas de sudo (2 estouros de 5404 da mesma origem em 30 min).</description>
+    <group>sudo,privilege_escalation,</group>
+  </rule>
+
+  <!-- Sudo bem-sucedido a root precedido de falhas: a mesma origem que
+       disparou 5404 acabou conseguindo escalar (5402). Impacto efetivo
+       de escalada => crítico. -->
+  <rule id="100013" level="13" frequency="1" timeframe="1800">
+    <if_matched_sid>5404</if_matched_sid>
+    <if_sid>5402</if_sid>
+    <same_srcip />
+    <description>Sudo a root bem-sucedido apos falhas recentes da mesma origem (escalada efetiva).</description>
+    <group>sudo,privilege_escalation,intrusion,</group>
+  </rule>
+
+  <!-- Primeiro uso de sudo (nativa 5403 = 4) por usuário cuja sessão SSH
+       veio de fora das faixas institucionais. Combinação geografia +
+       privilégio inédito eleva para alto. -->
+  <rule id="100014" level="11">
+    <if_sid>5403</if_sid>
+    <srcip negate="yes">203.0.113.0/24|203.0.113.0/24</srcip>
+    <description>Primeiro uso de sudo por usuario com sessao originada fora das faixas BR institucionais.</description>
+    <group>sudo,privilege_escalation,geo_anomaly,</group>
+  </rule>
+
+  <!-- =====================================================================
+       BLOCO 4 — CONTAS DE SISTEMA / USUÁRIOS SENSÍVEIS
+       Em servidor de pesquisa, contas de sistema (daemon, bin, sync,
+       nobody, www-data, etc.) não devem autenticar interativamente.
+       ===================================================================== -->
+
+  <!-- Tentativa de login SSH com nome de conta de sistema. Mesmo falhando,
+       indica reconhecimento direcionado. -->
+  <rule id="100020" level="9">
+    <if_sid>5710,5716,5760</if_sid>
+    <dstuser>daemon|bin|sys|sync|games|man|lp|mail|news|uucp|proxy|www-data|backup|list|irc|gnats|nobody|systemd-network|systemd-resolve|messagebus|sshd|postfix|mysql|postgres</dstuser>
+    <description>SSH: tentativa de autenticacao em conta de sistema (nao deveria logar interativamente).</description>
+    <group>authentication_failed,system_account,recon,</group>
+  </rule>
+
+  <!-- Login SSH bem-sucedido em conta de sistema. Impacto efetivo:
+       sessão interativa em conta que nao deveria ter shell.
+       A nativa 40101 ja marca system user login como 12; aqui reforcamos
+       com 14 quando vem via sshd (sessao remota = pior que local). -->
+  <rule id="100021" level="14">
+    <if_sid>5715</if_sid>
+    <dstuser>daemon|bin|sys|sync|games|man|lp|mail|news|uucp|proxy|www-data|backup|list|irc|gnats|nobody|systemd-network|systemd-resolve|messagebus|sshd|postfix|mysql|postgres</dstuser>
+    <description>SSH: login bem-sucedido em conta de sistema (sessao interativa anomala).</description>
+    <group>authentication_success,system_account,intrusion,</group>
+  </rule>
+
+  <!-- =====================================================================
+       BLOCO 5 — PERSISTÊNCIA E PADRÕES DISTRIBUÍDOS
+       ===================================================================== -->
+
+  <!-- Atacante persistente: a mesma origem externa volta a falhar depois
+       de janela longa, mostrando campanha sustentada (low-and-slow real).
+       3 falhas da mesma origem em 1 hora, fora das faixas institucionais. -->
+  <rule id="100030" level="11" frequency="3" timeframe="3600">
+    <if_matched_sid>5716</if_matched_sid>
+    <same_srcip />
+    <srcip negate="yes">203.0.113.0/24|203.0.113.0/24</srcip>
+    <description>SSH: atacante persistente externo (3 falhas da mesma origem nao-institucional em 1 hora).</description>
+    <group>authentication_failures,persistence,geo_anomaly,</group>
+  </rule>
+
+  <!-- Botnet/varredura distribuída: muitas origens diferentes falhando
+       contra o servidor em janela curta. 20 IPs distintos em 5 min. -->
+  <rule id="100031" level="10" frequency="20" timeframe="300">
+    <if_matched_sid>5716</if_matched_sid>
+    <different_srcip />
+    <description>SSH: varredura distribuida (20 IPs distintos falhando autenticacao em 5 min).</description>
+    <group>authentication_failures,distributed_attack,</group>
+  </rule>
+
+  <!-- Mesma origem alternando entre falha por usuário inexistente (5710)
+       e falha por senha (5716) — comportamento típico de ferramenta de
+       força bruta com wordlist mista de usuários. 10 eventos em 5 min. -->
+  <rule id="100032" level="11" frequency="10" timeframe="300">
+    <if_matched_sid>5710</if_matched_sid>
+    <if_sid>5716,5760</if_sid>
+    <same_srcip />
+    <description>SSH: padrao misto de enumeracao e brute force (mesma origem alternando 5710/5716 em 5 min).</description>
+    <group>brute_force,recon,</group>
+  </rule>
+
+  <!-- =====================================================================
+       BLOCO 6 — SU / TROCA DE IDENTIDADE
+       ===================================================================== -->
+
+  <!-- Múltiplas falhas de su para root da mesma origem.
+       Nativa 5302 = 5; correlação eleva. 3 falhas em 10 min. -->
+  <rule id="100040" level="11" frequency="3" timeframe="600">
+    <if_matched_sid>5302</if_matched_sid>
+    <same_srcip />
+    <description>su: multiplas falhas de troca para root da mesma origem (3 em 10 min).</description>
+    <group>su,privilege_escalation,</group>
+  </rule>
+
+  <!-- su para root bem-sucedido em sessão originada de fora das faixas
+       institucionais. Geografia + impacto efetivo de root local. -->
+  <rule id="100041" level="13">
+    <if_sid>5303</if_sid>
+    <srcip negate="yes">203.0.113.0/24|203.0.113.0/24</srcip>
+    <description>su: troca para root bem-sucedida em sessao originada fora das faixas BR institucionais.</description>
+    <group>su,privilege_escalation,geo_anomaly,intrusion,</group>
+  </rule>
+
+</group>

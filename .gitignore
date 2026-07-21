@@ -1,0 +1,14 @@
+.env
+*.pem
+*.key
+*.log
+!dataset/sample-1000.log
+paper/
+stack/
+_upstream/
+public-artifacts/
+scripts/anonymize.py
+out/
+out-full/
+.claude/
+__pycache__/

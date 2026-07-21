@@ -1,0 +1,16 @@
+<!--
+  Custom rules slot (IDs >= 100000).
+  With this placeholder loaded, the stack classifies with the NATIVE Wazuh
+  ruleset only (the paper's baseline). scripts/replay-variants.sh overwrites
+  this file with each LLM-generated rule set (results/run*.xml) in turn.
+
+  The rule below is a placeholder that NEVER fires (impossible match, level 0):
+  it only keeps the file valid, since analysisd rejects a group with no rule.
+  It does not affect the baseline classification.
+-->
+<group name="study,local,">
+  <rule id="100000" level="0">
+    <match>__wazuh_study_placeholder_never_matches__</match>
+    <description>Study placeholder (no effect)</description>
+  </rule>
+</group>
