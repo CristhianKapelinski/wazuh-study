@@ -13,7 +13,7 @@ Wazuh:
 | `srv01` | research server, internet-exposed | ~290,000 |
 | `srv02` | research server, internet-exposed | ~35,000 |
 
-Collection window: **2026-05-17 to 2026-05-21** (~4 days). Because both
+Collection window: **2026-05-17 to 2026-05-21** (five calendar days). Because both
 machines have public IPs, they receive real, continuous attack traffic (scans,
 username enumeration, SSH brute force) in addition to legitimate access, which
 yields a dataset with **real positives**, not synthetic ones.
@@ -63,16 +63,17 @@ events. The sampling guarantees both combinations are present:
   early-morning peak (04h ≈ 2,190 logins), confirming the machines have no
   conventional business hours. The `Accepted` stratum was split into
   **business (09-18h)** and **non-business (00-06h + night)**, ~100 each.
-- **Geolocation:** legitimate (`Accepted`) logins come from **a single
-  institutional IP** (`203.0.113.11` in the released mapping, in-country);
-  the attacks (`Invalid user`, `Failed password`) come from **dozens of
-  foreign IPs** (419 unique source IPs in total). Both situations are
-  represented.
+- **Geolocation:** 197 `Accepted` logins come from two institutional IPs
+  (`203.0.113.1` and `203.0.113.2` in the released mapping). One additional
+  `Accepted` login comes from an in-country, non-institutional IP
+  (`198.51.100.51`) and is labeled `medium` as an atypical success requiring
+  verification. Failed attacks (`Invalid user`, `Failed password`) come from
+  dozens of external IPs (419 unique source IPs in total).
 
 Known limitation: the case "**accepted** login from a foreign country" (the
-most critical, indicating compromise) **does not exist in the real data**; no
-external access succeeded in the window. If needed, that case must be injected
-synthetically (future work).
+most critical, indicating compromise) **does not exist in the real data**.
+The only non-institutional success is in-country. Evaluating the critical case
+would require synthetic injection (future work).
 
 ## 4. Sampling determinism
 

@@ -47,8 +47,10 @@ opportunistic traffic.
 | low | 92 | 274 |
 | none | 644 | 374 |
 
-(Totals exclude one spurious manager self-event captured alongside the sample;
-see `docs/REPRODUCIBILITY_REPORT.md`.)
+(The stored CSV has 1,001 rows and 645 raw `nenhum` labels because it includes
+one spurious manager self-event captured alongside the sample. The metrics
+exclude that event, so this table reports the evaluated population of 1,000
+events and support 644 for `none`; see `docs/REPRODUCIBILITY_REPORT.md`.)
 
 ## Divergences from Wazuh (what the study wants to correct)
 
@@ -62,7 +64,7 @@ see `docs/REPRODUCIBILITY_REPORT.md`.)
 
 ## Dataset limitation
 
-There is no `critical` case (successful external login or brute force followed
-by success); no external access succeeded in the collection window. That
-scenario, if needed to exercise geolocation rules with success, would require
-synthetic injection.
+There is no `critical` case: no out-of-country login succeeded, and no brute
+force was followed by success. One in-country, non-institutional login did
+succeed and is labeled `medium`. Exercising the critical geolocation case
+would require synthetic injection.
