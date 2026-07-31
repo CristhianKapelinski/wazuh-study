@@ -5,22 +5,26 @@ evaluation environment.
 
 ## 1. Data origin
 
-The logs come from two real production servers with public IPs, monitored by
-Wazuh:
+The logs come from two real production research servers at UNIPAMPA, monitored
+by Wazuh:
 
 | Host (released name) | Role | auth.log (lines) |
 |------|-------|-------------------|
 | `srv01` | research server, internet-exposed | ~290,000 |
 | `srv02` | research server, internet-exposed | ~35,000 |
 
-Collection window: **2026-05-17 to 2026-05-21** (five calendar days). Because both
-machines have public IPs, they receive real, continuous attack traffic (scans,
-username enumeration, SSH brute force) in addition to legitimate access, which
-yields a dataset with **real positives**, not synthetic ones.
+Collection window: **2026-05-17 to 2026-05-21** (five calendar days). The
+released sample records external-origin SSH traffic on both hosts, including
+failed attempts and pre-authentication closures. It therefore contains real
+events rather than synthetically generated attack traffic. The logs alone do
+not establish the hosts' complete access-control configurations or a
+university-wide access policy.
 
-The machines permit SSH access from external networks; there is no VPN-only
-access restriction. The institutional range is an experimental labeling
-reference used to distinguish routine from atypical successful logins.
+The source hosts and the organization profile are separate parts of the study.
+The profile supplied to the LLM is a hypothetical academic scenario, inspired
+by the institutional context but not intended to reproduce UNIPAMPA or the
+heterogeneous policies of its hosts. It assumes that legitimate SSH access
+comes exclusively from in-country institutional ranges.
 
 Why `auth.log` (and not generic `syslog`): the object of study is the
 classification of **authentication, credential use, and privilege escalation**
@@ -67,12 +71,13 @@ events. The sampling guarantees both combinations are present:
   early-morning peak (04h ≈ 2,190 logins), confirming the machines have no
   conventional business hours. The `Accepted` stratum was split into
   **business (09-18h)** and **non-business (00-06h + night)**, ~100 each.
-- **Geolocation:** 197 `Accepted` logins come from two institutional IPs
-  (`203.0.113.1` and `203.0.113.2` in the released mapping). One additional
-  `Accepted` login comes from an in-country, non-institutional IP
-  (`198.51.100.51`) and is labeled `medium` as an atypical success requiring
-  verification. Failed attacks (`Invalid user`, `Failed password`) come from
-  dozens of external IPs (419 unique source IPs in total).
+- **Geolocation:** `srv01` contributes 27 `Accepted` logins: 26 from
+  institutional addresses and one from an in-country, non-institutional
+  address (`198.51.100.51`), labeled `medium` under the assumed profile.
+  `srv02` contributes 171 accepted logins, all from the institutional range.
+  These are sample observations, not claims about either host's configured
+  access policy. External-origin events in the released sample involve 89
+  unique source addresses.
 
 Known limitation: the case "**accepted** login from a foreign country" (the
 most critical, indicating compromise) **does not exist in the real data**.
@@ -124,5 +129,5 @@ therefore not part of the public artifact.
   than the log's own timestamp, faithful reproduction of those rules would
   require timed replay, out of scope here (the study focuses on atomic
   classification).
-- The dataset covers ~4 days of two hosts; it does not capture longer-term
+- The dataset covers five calendar days on two hosts; it does not capture longer-term
   seasonality.

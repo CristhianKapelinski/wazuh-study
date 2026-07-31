@@ -22,8 +22,8 @@ Principle: **effective impact** decides. What compromised (or could have) >
 an attempt that failed. Geography only aggravates when there is **success**
 or **volume**; time of day never aggravates (24/7 usage).
 
-External SSH access is technically permitted. The institutional network is a
-labeling reference for routine access, not an access-control boundary.
+The labels apply the hypothetical profile supplied to the LLM. They do not
+encode the actual access-control policy of either source host.
 
 | Event pattern | Manual | Rationale |
 |------------------|--------|---------------|
