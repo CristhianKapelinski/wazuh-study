@@ -34,7 +34,7 @@ encode the actual access-control policy of either source host.
 | Brute force (rule 5712) | medium | active attack without success |
 | Login from an **in-country IP outside the institutional network** | medium | atypical success → verify |
 | `su`/`sudo` to **root** | high | **privilege escalation obtained** = concrete impact |
-| **Successful external** login / brute force followed by success | critical | compromise — *no such case in this dataset* |
+| **Successful out-of-country** login / brute force followed by success | critical | compromise — *no such case in this dataset* |
 
 The burst threshold (≥10 attempts from the same IP) is derived from the
 distribution: 6 IPs concentrate the mass enumeration; the rest is isolated

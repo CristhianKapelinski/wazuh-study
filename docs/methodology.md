@@ -51,10 +51,10 @@ class relevant to the problem, plus enough noise to measure false positives:
 |---------|------|------------------|
 | Invalid user | ~200 | username enumeration (attack) |
 | Failed password | ~150 | brute force (attack) |
-| Accepted (successful login) | 200 | legitimate access — basis for geo/time rules |
+| Accepted (successful login) | 198 | legitimate access — basis for geo/time rules |
 | sudo | 9 (all) | privilege escalation (rare → census, not sample) |
 | su | 36 (all) | privilege escalation (rare → census) |
-| Disconnected | ~105 | connection anomalies |
+| Disconnected | 123 | connection anomalies |
 | session / connection / CRON | ~300 | noise (false-positive control) |
 | **Total** | **1,000** | |
 
