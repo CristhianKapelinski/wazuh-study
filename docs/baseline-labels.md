@@ -22,6 +22,9 @@ Principle: **effective impact** decides. What compromised (or could have) >
 an attempt that failed. Geography only aggravates when there is **success**
 or **volume**; time of day never aggravates (24/7 usage).
 
+External SSH access is technically permitted. The institutional network is a
+labeling reference for routine access, not an access-control boundary.
+
 | Event pattern | Manual | Rationale |
 |------------------|--------|---------------|
 | Successful login from the **institutional network** (any hour) | none | legitimate routine — out of alerting scope |

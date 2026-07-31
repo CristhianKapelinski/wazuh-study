@@ -18,6 +18,10 @@ machines have public IPs, they receive real, continuous attack traffic (scans,
 username enumeration, SSH brute force) in addition to legitimate access, which
 yields a dataset with **real positives**, not synthetic ones.
 
+The machines permit SSH access from external networks; there is no VPN-only
+access restriction. The institutional range is an experimental labeling
+reference used to distinguish routine from atypical successful logins.
+
 Why `auth.log` (and not generic `syslog`): the object of study is the
 classification of **authentication, credential use, and privilege escalation**
 events. `auth.log` concentrates 100% of those events (sshd, PAM, sudo, su,
