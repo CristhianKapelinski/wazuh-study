@@ -12,8 +12,24 @@ OUT="out"
 [ "${1:-}" = "--out" ] && OUT="${2:?usage: ./reproduce.sh [--out DIR]}"
 mkdir -p "$OUT"
 
+# Fail with the command that fixes it, not with a traceback three steps later.
+command -v python3 >/dev/null || {
+  echo "need: python3 (3.8 or newer). Debian/Ubuntu: sudo apt-get install -y python3" >&2
+  echo "      Fedora/RHEL: sudo dnf install -y python3   Arch: sudo pacman -S python" >&2
+  exit 1; }
+python3 - <<'PYCHECK' || exit 1
+import sys
+if sys.version_info < (3, 8):
+    sys.exit(f"need: python3 >= 3.8, found {sys.version.split()[0]}")
+PYCHECK
+
+# sha256sum is GNU coreutils; macOS and some minimal images ship shasum instead.
+if command -v sha256sum >/dev/null; then SHA="sha256sum"
+elif command -v shasum >/dev/null;   then SHA="shasum -a 256"
+else echo "need: sha256sum (GNU coreutils) or shasum" >&2; exit 1; fi
+
 echo "== verifying dataset checksums =="
-sha256sum -c expected/checksums.sha256
+$SHA -c expected/checksums.sha256
 
 echo "== recomputing metrics =="
 python3 scripts/metrics.py dataset/dataset-1000-baseline.csv \
