@@ -22,12 +22,24 @@ fi
 
 command -v docker >/dev/null || { echo "need: docker (the full replay needs it anyway)" >&2; exit 1; }
 
-# Read a bounded chunk FIRST, then filter. Piping an unbounded /dev/urandom
-# into `head -c` closes the pipe early, and under `set -o pipefail` the SIGPIPE
-# on the producer aborts the whole script.
-pw () { head -c 512 /dev/urandom | LC_ALL=C tr -dc 'A-Za-z0-9' | cut -c1-24; }
-# htpasswd prints ":<hash>" followed by a blank line, so pick the line that
-# actually carries the hash instead of taking the last one.
+# Wazuh rejects a password that has no special character ("Error 5007 -
+# Insecure user password provided") and the manager then crash-loops, so build
+# each password with one lowercase, one uppercase, one digit and one special
+# from the set Wazuh accepts, then pad and shuffle.
+#
+# Read a bounded chunk FIRST, then filter: piping an unbounded /dev/urandom into
+# `head -c` closes the pipe early, and under `set -o pipefail` the SIGPIPE on the
+# producer aborts the whole script.
+rand_from () { head -c 2048 /dev/urandom | LC_ALL=C tr -dc "$1" | cut -c1-"$2"; }
+pw () {
+  local body special all
+  body=$(rand_from 'A-Za-z0-9' 20)
+  special=$(rand_from '.*+?_-' 1)
+  # guarantee one of each class regardless of what the random draw produced
+  all="${body}${special}aZ7"
+  printf '%s' "$all" | fold -w1 | shuf | tr -d '\n'
+}
+
 bcrypt () { docker run --rm httpd:2.4-alpine htpasswd -bnBC 12 "" "$1" | sed -n 's/^://p'; }
 
 ADMIN_PASSWORD="$(pw)"
@@ -57,6 +69,10 @@ COMPOSE_PROJECT_NAME=wazuhstudy
 # would fill 'git status' with files you cannot even read.
 DATA_DIR=${DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/wazuh-study}
 EOF
+
+# Create it now, as the invoking user. If the first thing to touch this path is
+# a docker bind mount, Docker creates it as root and run.sh then needs sudo.
+mkdir -p "${DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/wazuh-study}"
 
 echo "wrote .env with freshly generated credentials"
 echo "  dashboard port : 8444"
