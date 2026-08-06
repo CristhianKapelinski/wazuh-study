@@ -22,7 +22,7 @@ number printed in the paper.
 | [Security concerns](#security-concerns) | What runs where |
 | [Installation](#installation) | Clone; nothing else for the main path |
 | [Minimal test](#minimal-test) | One command, < 1 s |
-| [Experiments](#experiments) | Claim #1 (main, < 1 s) and Claim #2 (optional, Docker) |
+| [Experiments](#experiments) | The single claim: the numbers come from the Wazuh engine (Docker) |
 | [Citation](#citation) | How to cite the paper |
 | [LICENSE](#license) | MIT |
 
@@ -89,69 +89,60 @@ machine:
 ./reproduce.sh
 ```
 
-Expected final output:
+- **Expected time:** 0.15 s (measured; see *Basic information*).
+- **Expected resources:** 13 MB peak RAM, under 10 MB written to `out/`. No network, no Docker.
+- **Expected result:** the checksums verify, the native and LLM metrics are recomputed from
+  the committed labeled CSVs, and all 52 published values are checked against the paper at
+  its own precision, one `PASS <check-id>` line each, ending in:
 
 ```
 52 pass / 0 fail / 0 skip
 ```
 
-with one `PASS <check-id>` line per verified paper value, and exit code 0.
+  The script exits non-zero if any check fails. `out/summary.json` carries the headline
+  deltas (`"drop_accuracy_pp": 4.4`, `"drop_weighted_f1_pp": 3.1`,
+  `"runs_ab_identical": true`) and `out/summary.csv` reproduces the aggregate columns of
+  Table 2. Every other number in the paper is a field of the same run: per-class precision,
+  recall and F1 in `out/native.json` and `out/run*.json`, and the confusion matrices of
+  Table 3 in their `confusion` fields.
+
+**This command is the artifact's verification, so it is not repeated as a claim below.**
 
 ## Experiments
 
-Two claims. **Claim #1 is the main one and is what reproduces the paper.** Its
-command is the same one as the *Minimal test* above, because the whole
-verification runs in under a second: there is nothing to gain from a reduced
-variant, and splitting it into two different commands would only invent a
-difference that does not exist. Claim #2 re-measures the pipeline live and is
-optional.
+One claim. The verification of the paper's 52 values is the *Minimal test* above and is not
+restated here: it is the same single command, and giving it a second name would invent a
+difference that does not exist. What follows is the claim that the numbers come from the
+Wazuh engine rather than from the CSVs committed next to them.
 
-### Claim #1 (main): the LLM-augmented ruleset loses 4.4 pp of accuracy and 3.1 pp of weighted F1 to the native baseline, and runs A and B are identical
+### Claim #1 (main): the published numbers come out of the Wazuh engine, not out of the committed CSVs
 
-```bash
-./reproduce.sh
-```
+**Paper reference:** Table 2 and Table 3.
 
-- **Flags:** none. `--out DIR` writes elsewhere than `out/`.
-- **Expected time:** 0.15 s (measured; see *Basic information*).
-- **Expected resources:** 13 MB peak RAM, under 10 MB written to `out/`. No
-  network, no Docker.
-- **Expected result:** the checksums verify, the native and LLM metrics are
-  recomputed from the committed labeled CSVs, and all 52 published values are
-  checked against the paper at its own precision, one `PASS <check-id>` line
-  each, ending in:
-
-```
-52 pass / 0 fail / 0 skip
-```
-
-  `out/summary.json` carries the headline deltas
-  (`"drop_accuracy_pp": 4.4`, `"drop_weighted_f1_pp": 3.1`,
-  `"runs_ab_identical": true`) and `out/summary.csv` reproduces the aggregate
-  columns of Table 2. Every other number in the paper is a field of the same
-  run: per-class precision, recall and F1 in `out/native.json` and
-  `out/run*.json`, and the confusion matrices of Table 3 in their `confusion`
-  fields. The script exits non-zero if any check fails.
-
-### Claim #2 (optional): the numbers come from the Wazuh engine, not from the committed CSVs
+**What this runs.** It brings up the pinned Wazuh stack, replays the same 1,000 events
+through the engine once per rule set, and writes freshly labeled CSVs on your machine
+instead of reusing the committed ones. `./reproduce.sh` then verifies the paper's 52 values
+against *those*, closing the loop between the engine and the published tables.
 
 ```bash
 ./scripts/make-env.sh && ./run.sh --fresh
 ```
 
 - **Flags:** `--fresh` wipes previous state so the run starts from scratch.
-  `scripts/make-env.sh` writes the `.env` the stack needs, generating strong
-  random passwords and their bcrypt hashes in a throwaway container, so nothing
-  extra is installed on the host and no placeholder is edited by hand. It
-  refuses to overwrite an existing `.env`; pass `--force` to replace one.
-- **Expected time:** ~5-10 min to bring the stack up, then ~3-5 min per rule
-  variant.
+  `scripts/make-env.sh` writes the `.env` the stack needs, generating strong random
+  passwords and their bcrypt hashes in a throwaway container, so nothing extra is installed
+  on the host and no placeholder is edited by hand. It refuses to overwrite an existing
+  `.env`; pass `--force` to replace one.
+- **No password prompt.** Neither script asks for `sudo`. Wiping the state directory needs
+  root because the engine writes as UID 999/1000, and that root comes from a throwaway
+  container rather than from the host. The one host setting the indexer requires,
+  `vm.max_map_count`, is already high enough on most kernels; when it is not, the script
+  prints the single command to run and stops rather than prompting.
+- **Expected time:** ~5-10 min to bring the stack up, then ~3-5 min per rule variant.
 - **Expected resources:** Docker with the compose plugin, ~4 GB RAM, ~5 GB disk.
-- **Expected result:** the Wazuh engine is re-run over the same 1,000 events for
-  each rule set, producing labeled CSVs on your machine rather than reusing the
-  committed ones, and Claim #1 then verifies against those. Full procedure in
-  [`docs/full-replay.md`](docs/full-replay.md). Not required for any seal:
-  Claim #1 already reproduces every number in the paper.
+- **Expected result:** labeled CSVs regenerated under `out/`, after which `./reproduce.sh`
+  prints `52 pass / 0 fail / 0 skip` against them. Full procedure in
+  [`docs/full-replay.md`](docs/full-replay.md).
 
 ## Repository layout
 

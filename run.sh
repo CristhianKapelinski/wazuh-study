@@ -21,9 +21,22 @@ c_log(){ printf '\033[34m[*]\033[0m %s\n' "$*"; }
 command -v docker >/dev/null || { echo "docker not found"; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "docker compose (plugin) not found"; exit 1; }
 
+# The indexer needs vm.max_map_count >= 262144. Most desktop kernels already satisfy
+# it, so this only acts when it does not. It never prompts: a password prompt in the
+# middle of a reviewer's run is a dead end when the run is unattended or the account
+# has no sudo. Tried without a password, and if that fails the exact command is printed
+# and the run stops, so the reviewer fixes one thing and re-runs.
 if [ "$(cat /proc/sys/vm/max_map_count 2>/dev/null || echo 0)" -lt 262144 ]; then
-  c_log "raising vm.max_map_count (needs sudo once)"
-  sudo sysctl -w vm.max_map_count=262144 >/dev/null
+  if sudo -n sysctl -w vm.max_map_count=262144 >/dev/null 2>&1; then
+    c_ok "raised vm.max_map_count"
+  else
+    echo "vm.max_map_count is below the 262144 the Wazuh indexer needs, and raising it" >&2
+    echo "requires root. Run this once, then re-run this script:" >&2
+    echo >&2
+    echo "    sudo sysctl -w vm.max_map_count=262144" >&2
+    echo >&2
+    exit 1
+  fi
 fi
 
 # 1. official Wazuh stack (fetched once, pinned version)
@@ -55,16 +68,20 @@ if [ ! -d stack/config/wazuh_indexer_ssl_certs ] || [ -z "$(ls -A stack/config/w
   ( cd stack && docker compose -f generate-indexer-certs.yml run --rm generator )
 fi
 
-# 3. DATA_DIR owned by the invoking user (sudo only to create/wipe; files inside
-#    belong to UID 999/1000 and need root to remove)
-SUDO=""; command -v sudo >/dev/null && SUDO="sudo"
+# 3. DATA_DIR owned by the invoking user. The files inside belong to UID 999/1000, so
+#    removing them needs root; that root is taken from a throwaway container rather than
+#    from the host, exactly as the bind-mount preparation below already does. Docker is
+#    a stated dependency of this claim, sudo is not, and asking for a password halfway
+#    through stops an unattended run dead.
+root_sh() { docker run --rm -v "$DD:/d" alpine sh -c "$1"; }
 if [ ! -d "$DD" ] || [ ! -w "$DD" ]; then
-  $SUDO mkdir -p "$DD"; $SUDO chown "$(id -u):$(id -g)" "$DD"
+  mkdir -p "$DD" 2>/dev/null || true
+  root_sh "chown $(id -u):$(id -g) /d" 2>/dev/null || true
 fi
 if [ "$FRESH" = "--fresh" ]; then
   c_log "--fresh: wiping containers and data"
   ( cd stack && docker compose down -v 2>/dev/null || true )
-  $SUDO rm -rf "${DD:?}"/* "${DD:?}"/.[!.]* 2>/dev/null || true
+  root_sh 'rm -rf /d/..?* /d/.[!.]* /d/*' 2>/dev/null || true
 fi
 
 # 4. bind mounts: all directory handling via a root container (avoids host
