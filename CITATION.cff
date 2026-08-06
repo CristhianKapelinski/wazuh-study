@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "Context-Aware SIEM Rule Generation with LLMs: A Preliminary Study with Wazuh on SSH Authentication Logs"
+title: "Context-Aware SIEM Rule Generation with LLMs: When Site Profiles Are Not Enough"
 message: "If you use this artifact or dataset, please cite the paper below."
 type: software
 authors:
@@ -38,7 +38,7 @@ keywords:
   - artifact evaluation
 preferred-citation:
   type: conference-paper
-  title: "Context-Aware SIEM Rule Generation with LLMs: A Preliminary Study with Wazuh on SSH Authentication Logs"
+  title: "Context-Aware SIEM Rule Generation with LLMs: When Site Profiles Are Not Enough"
   authors:
     - family-names: Schafhauzer
       given-names: Priscila

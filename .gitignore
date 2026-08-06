@@ -12,3 +12,4 @@ out/
 out-full/
 .claude/
 __pycache__/
+.wazuh-data/

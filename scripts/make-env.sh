@@ -52,11 +52,13 @@ KIBANASERVER_HASH='$KIBANASERVER_HASH'
 DASHBOARD_PORT=8444
 COMPOSE_PROJECT_NAME=wazuhstudy
 
-# Any local path you own; the stack keeps its state here.
-DATA_DIR=${DATA_DIR:-$PWD/.wazuh-data}
+# Any local path you own; the stack keeps its state here. Deliberately OUTSIDE
+# the working tree: the containers write it as root, so keeping it in the repo
+# would fill 'git status' with files you cannot even read.
+DATA_DIR=${DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/wazuh-study}
 EOF
 
 echo "wrote .env with freshly generated credentials"
 echo "  dashboard port : 8444"
-echo "  state directory: ${DATA_DIR:-$PWD/.wazuh-data}"
+echo "  state directory: ${DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/wazuh-study}"
 echo "next: ./run.sh --fresh"

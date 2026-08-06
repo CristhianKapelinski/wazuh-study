@@ -1,8 +1,7 @@
 # wazuh-study: Context-Aware SIEM Rule Generation with LLMs
 
 Replication package for the SBSeg 2026 paper *"Context-Aware SIEM Rule
-Generation with LLMs: A Preliminary Study with Wazuh on SSH Authentication
-Logs"* (Main Track, short paper). An LLM conditioned only on an organization
+Generation with LLMs: When Site Profiles Are Not Enough"* (Main Track, short paper). An LLM conditioned only on an organization
 profile writes Wazuh local rules; over a fixed set of 1,000 real SSH
 authentication events, the LLM-augmented configuration **lowers accuracy by
 4.4 percentage points** (weighted F1 by 3.1) relative to the native ruleset,
@@ -171,16 +170,15 @@ run.sh, Makefile, manager/, rules/   optional full-replay stack
 ## Citation
 
 Priscila Schafhauzer, Cristhian Kapelinski, Marcio Pohlmann and Diego Kreutz.
-*Context-Aware SIEM Rule Generation with LLMs: A Preliminary Study with Wazuh on
-SSH Authentication Logs.* Simpósio Brasileiro de Segurança da Informação e de
+*Context-Aware SIEM Rule Generation with LLMs: When Site Profiles Are Not Enough.* Simpósio Brasileiro de Segurança da Informação e de
 Sistemas Computacionais (SBSeg), 2026.
 
 ```bibtex
 @inproceedings{schafhauzer2026siem,
   author    = {Schafhauzer, Priscila and Kapelinski, Cristhian and
                Pohlmann, Marcio and Kreutz, Diego},
-  title     = {Context-Aware {SIEM} Rule Generation with {LLMs}: A Preliminary
-               Study with Wazuh on {SSH} Authentication Logs},
+  title     = {Context-Aware {SIEM} Rule Generation with {LLMs}: When Site
+               Profiles Are Not Enough},
   booktitle = {Simp\'osio Brasileiro de Seguran\c{c}a da Informa\c{c}\~ao e de
                Sistemas Computacionais (SBSeg)},
   year      = {2026}
