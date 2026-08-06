@@ -1,0 +1,58 @@
+cff-version: 1.2.0
+title: "Context-Aware SIEM Rule Generation with LLMs: A Preliminary Study with Wazuh on SSH Authentication Logs"
+message: "If you use this artifact or dataset, please cite the paper below."
+type: software
+authors:
+  - family-names: Schafhauzer
+    given-names: Priscila
+    orcid: "https://orcid.org/0009-0004-9037-5566"
+    affiliation: "AI Horizon Labs, PPGES, Federal University of Pampa (UNIPAMPA)"
+  - family-names: Kapelinski
+    given-names: Cristhian
+    orcid: "https://orcid.org/0009-0005-5750-022X"
+    affiliation: "AI Horizon Labs, PPGES, Federal University of Pampa (UNIPAMPA)"
+  - family-names: Pohlmann
+    given-names: Marcio
+    orcid: "https://orcid.org/0009-0003-0856-3756"
+    affiliation: "AI Horizon Labs, PPGES, Federal University of Pampa (UNIPAMPA)"
+  - family-names: Kreutz
+    given-names: Diego
+    orcid: "https://orcid.org/0000-0003-0830-0238"
+    affiliation: "AI Horizon Labs, PPGES, Federal University of Pampa (UNIPAMPA)"
+abstract: >-
+  Replication package for a study of LLM-generated Wazuh rules. An LLM
+  conditioned only on an organization profile writes local rules; over a fixed
+  set of 1,000 real SSH authentication events, the LLM-augmented configuration
+  lowers accuracy by 4.4 percentage points and weighted F1 by 3.1 relative to
+  the native ruleset, with the regression concentrated in a single failure
+  mode. The package holds the anonymized dataset, the prompts, the generated
+  rule sets, the per-run labeled CSVs, and the scripts that recompute and
+  verify every number printed in the paper.
+license: MIT
+repository-code: "https://github.com/CristhianKapelinski/wazuh-study"
+keywords:
+  - siem
+  - wazuh
+  - large language models
+  - rule generation
+  - artifact evaluation
+preferred-citation:
+  type: conference-paper
+  title: "Context-Aware SIEM Rule Generation with LLMs: A Preliminary Study with Wazuh on SSH Authentication Logs"
+  authors:
+    - family-names: Schafhauzer
+      given-names: Priscila
+      orcid: "https://orcid.org/0009-0004-9037-5566"
+    - family-names: Kapelinski
+      given-names: Cristhian
+      orcid: "https://orcid.org/0009-0005-5750-022X"
+    - family-names: Pohlmann
+      given-names: Marcio
+      orcid: "https://orcid.org/0009-0003-0856-3756"
+    - family-names: Kreutz
+      given-names: Diego
+      orcid: "https://orcid.org/0000-0003-0830-0238"
+  collection-title: "Anais do XXVII Simpósio Brasileiro de Segurança da Informação e de Sistemas Computacionais (SBSeg 2026)"
+  year: 2026
+  publisher:
+    name: "Sociedade Brasileira de Computação (SBC)"

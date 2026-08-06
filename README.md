@@ -23,7 +23,8 @@ number printed in the paper.
 | [Security concerns](#security-concerns) | What runs where |
 | [Installation](#installation) | Clone; nothing else for the main path |
 | [Minimal test](#minimal-test) | One command, < 1 s |
-| [Experiments](#experiments) | Claim-by-claim reproduction |
+| [Experiments](#experiments) | Claim #1 (main, < 1 s) and Claim #2 (optional, Docker) |
+| [Citation](#citation) | How to cite the paper |
 | [LICENSE](#license) | MIT |
 
 ## Considered badges
@@ -45,7 +46,7 @@ number printed in the paper.
 |---|---|
 | OS | Linux (any distribution with Python 3) |
 | Runtime | Python ≥ 3.10 (standard library only) |
-| RAM / disk | < 200 MB RAM, < 50 MB disk |
+| RAM / disk | 13 MB peak RAM (measured), < 50 MB disk |
 | GPU | not needed |
 | Optional full replay | Docker + compose, ~4 GB RAM, ~5 GB disk |
 | Reference machine | AMD Ryzen 5 8600G, 30 GB RAM |
@@ -99,29 +100,59 @@ with one `PASS <check-id>` line per verified paper value, and exit code 0.
 
 ## Experiments
 
-**Main claim (the paper's headline): the LLM-augmented configuration loses
-4.4 pp of accuracy and 3.1 pp of weighted F1 to the native baseline, and runs
-A/B are identical.**
+Two claims. **Claim #1 is the main one and is what reproduces the paper.** Its
+command is the same one as the *Minimal test* above, because the whole
+verification runs in under a second: there is nothing to gain from a reduced
+variant, and splitting it into two different commands would only invent a
+difference that does not exist. Claim #2 re-measures the pipeline live and is
+optional.
 
-- Description: recomputes native and LLM metrics from the committed labeled
-  CSVs and verifies all 52 paper values, including the headline deltas.
-- Execution: `./reproduce.sh` (< 1 s)
-- Expected resources: < 200 MB RAM, < 10 MB written to `out/`.
-- Expected result: `52 pass / 0 fail / 0 skip`; `out/summary.json` contains
-  `"drop_accuracy_pp": 4.4, "drop_weighted_f1_pp": 3.1,
-  "runs_ab_identical": true`; `out/summary.csv` reproduces Table 2's
-  aggregate columns.
+### Claim #1 (main): the LLM-augmented ruleset loses 4.4 pp of accuracy and 3.1 pp of weighted F1 to the native baseline, and runs A and B are identical
 
-Every other number in the paper is a field of the same run: per-class
-precision/recall/F1 in `out/native.json` and `out/run*.json`, and the
-confusion matrices (Table 3) in their `confusion` fields. Pre-computed
-reference outputs are committed in `results/` for inspection without
-re-running.
+```bash
+./reproduce.sh
+```
 
-**Optional (slow) full replay:** re-execute the Wazuh engine itself over the
-same 1,000 events for each rule set (measures live on your machine; it never
-reuses the committed reference CSVs). Requires Docker; ~5-10 min for the
-stack plus ~3-5 min per variant. See `docs/full-replay.md`.
+- **Flags:** none. `--out DIR` writes elsewhere than `out/`.
+- **Expected time:** 0.15 s (measured; see *Basic information*).
+- **Expected resources:** 13 MB peak RAM, under 10 MB written to `out/`. No
+  network, no Docker.
+- **Expected result:** the checksums verify, the native and LLM metrics are
+  recomputed from the committed labeled CSVs, and all 52 published values are
+  checked against the paper at its own precision, one `PASS <check-id>` line
+  each, ending in:
+
+```
+52 pass / 0 fail / 0 skip
+```
+
+  `out/summary.json` carries the headline deltas
+  (`"drop_accuracy_pp": 4.4`, `"drop_weighted_f1_pp": 3.1`,
+  `"runs_ab_identical": true`) and `out/summary.csv` reproduces the aggregate
+  columns of Table 2. Every other number in the paper is a field of the same
+  run: per-class precision, recall and F1 in `out/native.json` and
+  `out/run*.json`, and the confusion matrices of Table 3 in their `confusion`
+  fields. The script exits non-zero if any check fails.
+
+### Claim #2 (optional): the numbers come from the Wazuh engine, not from the committed CSVs
+
+```bash
+./scripts/make-env.sh && ./run.sh --fresh
+```
+
+- **Flags:** `--fresh` wipes previous state so the run starts from scratch.
+  `scripts/make-env.sh` writes the `.env` the stack needs, generating strong
+  random passwords and their bcrypt hashes in a throwaway container, so nothing
+  extra is installed on the host and no placeholder is edited by hand. It
+  refuses to overwrite an existing `.env`; pass `--force` to replace one.
+- **Expected time:** ~5-10 min to bring the stack up, then ~3-5 min per rule
+  variant.
+- **Expected resources:** Docker with the compose plugin, ~4 GB RAM, ~5 GB disk.
+- **Expected result:** the Wazuh engine is re-run over the same 1,000 events for
+  each rule set, producing labeled CSVs on your machine rather than reusing the
+  committed ones, and Claim #1 then verifies against those. Full procedure in
+  [`docs/full-replay.md`](docs/full-replay.md). Not required for any seal:
+  Claim #1 already reproduces every number in the paper.
 
 ## Repository layout
 
@@ -136,6 +167,28 @@ docs/                     methodology, labels rationale, org profile,
                           full-replay guide, REPRODUCIBILITY_REPORT.md
 run.sh, Makefile, manager/, rules/   optional full-replay stack
 ```
+
+## Citation
+
+Priscila Schafhauzer, Cristhian Kapelinski, Marcio Pohlmann and Diego Kreutz.
+*Context-Aware SIEM Rule Generation with LLMs: A Preliminary Study with Wazuh on
+SSH Authentication Logs.* Simpósio Brasileiro de Segurança da Informação e de
+Sistemas Computacionais (SBSeg), 2026.
+
+```bibtex
+@inproceedings{schafhauzer2026siem,
+  author    = {Schafhauzer, Priscila and Kapelinski, Cristhian and
+               Pohlmann, Marcio and Kreutz, Diego},
+  title     = {Context-Aware {SIEM} Rule Generation with {LLMs}: A Preliminary
+               Study with Wazuh on {SSH} Authentication Logs},
+  booktitle = {Simp\'osio Brasileiro de Seguran\c{c}a da Informa\c{c}\~ao e de
+               Sistemas Computacionais (SBSeg)},
+  year      = {2026}
+}
+```
+
+[`CITATION.cff`](CITATION.cff) carries the same metadata in machine-readable
+form, so GitHub's "Cite this repository" button picks it up.
 
 ## LICENSE
 
