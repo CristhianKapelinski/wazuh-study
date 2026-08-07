@@ -21,7 +21,9 @@ gone() {   # gone <path> <what it is>
   sz=${sz:-0}
   total=$((total + sz))
   printf '  %-42s %5s MB  %s\n' "$p" "$sz" "$what"
-  [ "$DRY" = "1" ] || rm -rf "$p"
+  # rm fails the same way du does on root-owned output, and the docker fallback that
+  # exists for exactly that case sits further down -- so this must not abort either.
+  [ "$DRY" = "1" ] || rm -rf "$p" 2>/dev/null || true
 }
 
 # DATA_DIR lives outside the clone and is named in .env, which make-env.sh generated.
