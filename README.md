@@ -145,7 +145,10 @@ machine. The paper's 52 values are then verified against those.
   `RESULT: OK (52/52 published values match the paper)`, with the provenance line naming
   how many of the four rule sets were re-measured here. Wazuh 4.14.5 refuses three of the
   four generated sets, so the usual outcome is `1 of 4 rule sets re-measured`; the refused
-  ones are read from the committed run and named in the output. Why they are refused, and
+  ones are read from the committed run and named in the output. A re-measured value is
+  compared within a declared tolerance of 0.005 (rates) and 5 (counts) and printed as
+  `PASS ~live`: replaying the engine moves about two of the 1,000 events, which is 0.002 of
+  accuracy. Everything read from the committed run is compared exactly. Why they are refused, and
   why they are not edited, is in [`docs/dataset-repair.md`](docs/dataset-repair.md).
   Step-by-step detail in [`docs/full-replay.md`](docs/full-replay.md).
 

@@ -48,11 +48,11 @@ python3 scripts/metrics.py dataset/dataset-1000-baseline.csv \
 # CSV only for the variants it could load. The others fall back to the committed one and
 # are named here and in the final block, so the evaluator always knows which numbers were
 # measured on their machine and which were replayed.
-LIVE=0; REUSED=0; REUSED_LIST=""
+LIVE=0; REUSED=0; REUSED_LIST=""; LIVE_ARTIFACTS=""
 for RUN in runA-v2 runB-v2 runC-minimal runD-with-logs; do
   CSV="$SRC/results-$RUN/dataset.csv"
   if [ -f "$CSV" ]; then
-    LIVE=$((LIVE + 1))
+    LIVE=$((LIVE + 1)); LIVE_ARTIFACTS="${LIVE_ARTIFACTS:+$LIVE_ARTIFACTS,}$RUN.json"
   else
     CSV="results/results-$RUN/dataset.csv"
     REUSED=$((REUSED + 1)); REUSED_LIST="$REUSED_LIST $RUN"
@@ -66,7 +66,7 @@ python3 scripts/summarize.py "$OUT"
 
 echo "== verifying against the paper =="
 set +e
-VERIFY="$(python3 scripts/verify_values.py --results "$OUT")"; VRC=$?
+VERIFY="$(python3 scripts/verify_values.py --results "$OUT" --tolerant "$LIVE_ARTIFACTS")"; VRC=$?
 set -e
 echo "$VERIFY"
 read -r P F S <<EOF
