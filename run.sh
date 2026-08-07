@@ -18,18 +18,6 @@ FRESH="${1:-}"
 c_ok(){ printf '\033[32m✓\033[0m %s\n' "$*"; }
 c_log(){ printf '\033[34m[*]\033[0m %s\n' "$*"; }
 
-# Removes a path that may hold root-owned files. The certificate generator and the
-# engine both write as root, so a plain rm leaves a directory the reviewer cannot delete
-# even with rm -rf, which is how people end up stuck with an undeletable clone. Docker is
-# a declared dependency here; sudo is not, and it must never be prompted for.
-rm_rf_root() {
-  local target="$1"
-  [ -e "$target" ] || return 0
-  rm -rf "$target" 2>/dev/null && [ ! -e "$target" ] && return 0
-  docker run --rm -v "$(cd "$(dirname "$target")" && pwd):/p" alpine \
-    sh -c "rm -rf '/p/$(basename "$target")'" >/dev/null 2>&1 || true
-}
-
 command -v docker >/dev/null || { echo "docker not found"; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "docker compose (plugin) not found"; exit 1; }
 
@@ -59,7 +47,14 @@ if [ ! -d "$STACK" ]; then
 fi
 
 c_log "preparing stack"
-rm_rf_root stack && mkdir -p stack
+# The Wazuh certificate generator writes into stack/config as root, so a plain rm leaves
+# the directory behind and the clone becomes undeletable. Fixed path, spelled out, no
+# variable: the container can only ever remove this one directory.
+rm -rf stack 2>/dev/null || true
+if [ -e stack ]; then
+  docker run --rm -v "$PWD:/p" alpine rm -rf /p/stack
+fi
+mkdir -p stack
 cp -r "$STACK/." stack/
 cp manager/compose.override.yml stack/docker-compose.override.yml
 cp .env stack/.env
