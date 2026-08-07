@@ -72,6 +72,6 @@ echo "$VERIFY"
 read -r P F S <<EOF
 $(printf '%s\n' "$VERIFY" | sed -n 's/^\([0-9]*\) pass \/ \([0-9]*\) fail \/ \([0-9]*\) skip.*/\1 \2 \3/p' | tail -1)
 EOF
-SIEM_CLAIM_ELAPSED="$(( $(date +%s) - _T0 ))" \
+SIEM_CLAIM_ELAPSED="${SIEM_CLAIM_ELAPSED:-$(( $(date +%s) - _T0 ))}" \
   python3 scripts/show_claim.py "$OUT" "$SRC" "${P:-0}" "${F:-0}" "${S:-0}" "$LIVE" "$REUSED" || VRC=1
 exit "$VRC"

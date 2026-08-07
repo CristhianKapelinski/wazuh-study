@@ -8,6 +8,7 @@
 # off a dashboard.
 set -euo pipefail
 cd "$(dirname "$0")"
+_T0=$(date +%s)   # o relogio conta a claim inteira, nao so a verificacao final
 
 command -v docker >/dev/null || { echo "need: docker (with the compose plugin)" >&2; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "need: the docker compose plugin" >&2; exit 1; }
@@ -23,4 +24,4 @@ bash scripts/replay-variants.sh out-full
 
 echo
 echo "== [3/3] verifying the paper against what the engine just produced =="
-./reproduce.sh --out out-live --from out-full
+SIEM_CLAIM_ELAPSED="$(( $(date +%s) - _T0 ))" ./reproduce.sh --out out-live --from out-full
