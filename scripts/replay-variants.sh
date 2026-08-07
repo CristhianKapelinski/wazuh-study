@@ -63,12 +63,37 @@ for R in "${RUNS[@]}"; do
     continue
   fi
   rexec "docker exec $CT sh -c 'cat /var/ossec/logs/study/sample-1000.log >> /var/ossec/logs/study/feed.log'"
-  for i in $(seq 1 30); do
-    N=$(rexec "docker exec $CT sh -c 'wc -l < /var/ossec/logs/archives/archives.json 2>/dev/null || echo 0'")
-    [ "${N:-0}" -ge 990 ] && break
+  # The engine has to finish the WHOLE feed before the alerts are read. Waiting for 990
+  # of the 1,000 events and then sleeping a fixed 3 s left the remainder in flight, and
+  # whether they landed depended on how fast the host was: the same replay of the same
+  # events produced 46 escalations on one machine and 52 on another, so the claim passed
+  # or failed by hardware. Wait for every event, and for the count to stop moving, since
+  # reaching the total only means the last event was archived, not that its alert was
+  # written.
+  EXPECTED=$(rexec "docker exec $CT sh -c 'wc -l < /var/ossec/logs/study/sample-1000.log'" | tr -dc 0-9)
+  EXPECTED=${EXPECTED:-1000}
+  N=0; prev=-1; stable=0
+  for i in $(seq 1 90); do
+    N=$(rexec "docker exec $CT sh -c 'wc -l < /var/ossec/logs/archives/archives.json 2>/dev/null || echo 0'" | tr -dc 0-9)
+    N=${N:-0}
+    if [ "$N" -ge "$EXPECTED" ]; then
+      if [ "$N" = "$prev" ]; then
+        stable=$((stable + 1))
+        [ "$stable" -ge 2 ] && break
+      else
+        stable=0
+      fi
+    fi
+    prev="$N"
     sleep 2
   done
-  sleep 3
+  # A partial drain is a measurement of something other than the published run, so it is
+  # stated rather than folded silently into the metrics below.
+  if [ "$N" -lt "$EXPECTED" ]; then
+    echo "  WARNING: only $N of $EXPECTED events were archived before the 3-minute timeout."
+    echo "           The metrics below are measured on a PARTIAL replay and will not match"
+    echo "           the paper. Re-run this variant on a less loaded machine."
+  fi
   mkdir -p "$OUT/results-$R"
   cp dataset/dataset-1000-baseline.csv "$OUT/results-$R/dataset.csv"
   MANAGER_HOST="$H" bash scripts/merge-llm.sh "$OUT/results-$R/dataset.csv" > /dev/null

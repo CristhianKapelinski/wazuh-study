@@ -143,10 +143,29 @@ docker exec "$CT" sh -c 'cat /var/ossec/logs/study/sample-1000.log >> /var/ossec
 # 8. wait for processing and count alerts
 c_log "waiting for processing"
 count_ssh() { docker exec "$CT" sh -c 'grep -hoE "\"id\":\"5[0-9]{3}\"" /var/ossec/logs/alerts/alerts.json 2>/dev/null | wc -l' | tr -dc 0-9; }
-for i in $(seq 1 30); do
-  N=$(count_ssh); [ "${N:-0}" -gt 0 ] && break
-  sleep 5
+count_arch() { docker exec "$CT" sh -c 'wc -l < /var/ossec/logs/archives/archives.json 2>/dev/null || echo 0' | tr -dc 0-9; }
+# Returning as soon as ONE alert exists left the rest of the feed in flight. The replay
+# that follows clears these logs and re-injects the same events, so events still being
+# processed here land in the replay's freshly emptied archive and are counted against
+# the wrong run. Wait for the whole feed, and for the count to stop moving.
+EXPECTED=$(docker exec "$CT" sh -c 'wc -l < /var/ossec/logs/study/sample-1000.log' | tr -dc 0-9)
+EXPECTED=${EXPECTED:-1000}
+N=0; prev=-1; stable=0
+for i in $(seq 1 60); do
+  N=$(count_arch); N=${N:-0}
+  if [ "$N" -ge "$EXPECTED" ]; then
+    if [ "$N" = "$prev" ]; then
+      stable=$((stable + 1))
+      [ "$stable" -ge 2 ] && break
+    else
+      stable=0
+    fi
+  fi
+  prev="$N"
+  sleep 3
 done
+[ "$N" -lt "$EXPECTED" ] && \
+  echo "  note: $N of $EXPECTED events archived before the timeout; the stack is up but still draining."
 SSH_ALERTS=$(count_ssh)
 
 echo
