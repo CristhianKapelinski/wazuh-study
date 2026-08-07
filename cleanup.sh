@@ -14,7 +14,11 @@ total=0
 gone() {   # gone <path> <what it is>
   local p="$1" what="$2" sz
   [ -e "$p" ] || return 0
-  sz=$(du -sm "$p" 2>/dev/null | cut -f1); sz=${sz:-0}
+  # du exits non-zero on the files the containers wrote as root, and under
+  # `set -o pipefail` that status would abort the cleanup before anything is removed --
+  # the size is cosmetic, so losing it must never cost the removal below.
+  sz=$(du -sm "$p" 2>/dev/null | cut -f1) || sz=""
+  sz=${sz:-0}
   total=$((total + sz))
   printf '  %-42s %5s MB  %s\n' "$p" "$sz" "$what"
   [ "$DRY" = "1" ] || rm -rf "$p"
@@ -31,7 +35,7 @@ if command -v docker >/dev/null; then
   if [ -n "$ids" ]; then
     n=$(printf '%s\n' "$ids" | wc -l)
     printf '  %-42s %5s      %s\n' "$n container(s) wazuhstudy-*" "-" "the study stack"
-    [ "$DRY" = "1" ] || docker rm -f $ids >/dev/null
+    [ "$DRY" = "1" ] || docker rm -f $ids >/dev/null || true
   fi
 fi
 
