@@ -22,7 +22,7 @@ number printed in the paper.
 | [Security concerns](#security-concerns) | What runs where |
 | [Installation](#installation) | Clone; nothing else for the main path |
 | [Minimal test](#minimal-test) | One command, < 1 s |
-| [Experiments](#experiments) | The single claim: the numbers come from the Wazuh engine (Docker) |
+| [Experiments](#experiments) | Claim #1: replay through the Wazuh engine (Docker) |
 | [Citation](#citation) | How to cite the paper |
 | [LICENSE](#license) | MIT |
 
@@ -121,47 +121,33 @@ machine:
   recall and F1 in `out/native.json` and `out/run*.json`, and the confusion matrices of
   Table 3 in their `confusion` fields.
 
-**This command is the artifact's verification, so it is not repeated as a claim below.**
-
 ## Experiments
 
-One claim. The verification of the paper's 52 values is the *Minimal test* above and is not
-restated here: it is the same single command, and giving it a second name would invent a
-difference that does not exist. What follows is the claim that the numbers come from the
-Wazuh engine rather than from the CSVs committed next to them.
-
-### Claim #1 (main): the published numbers come out of the Wazuh engine, not out of the committed CSVs
+### Claim #1 (main): the LLM-augmented ruleset trails the native baseline by 4.4 pp of accuracy and 3.1 pp of weighted F1, and the two identical runs agree
 
 **Paper reference:** Table 2 and Table 3.
 
-**What this runs.** It brings up the pinned Wazuh stack, replays the same 1,000 events
-through the engine once per rule set, and writes freshly labeled CSVs on your machine
-instead of reusing the committed ones. `./reproduce.sh` then verifies the paper's 52 values
-against *those*, closing the loop between the engine and the published tables.
+**What this runs.** The pinned Wazuh stack is brought up and the same 1,000 events are
+replayed through the engine once per rule set, producing freshly labeled CSVs on your
+machine. The paper's 52 values are then verified against those.
 
 ```bash
 ./claim.sh
 ```
 
-- **Flags:** none. `claim.sh` writes the `.env` if it is missing, brings the stack up
-  with `run.sh --fresh`, replays every rule variant through the engine, and then runs
-  `./reproduce.sh --from out-full` so the paper is verified against the CSVs the engine
-  just produced. `scripts/make-env.sh` writes the `.env` the stack needs, generating strong random
-  passwords and their bcrypt hashes in a throwaway container, so nothing extra is installed
-  on the host and no placeholder is edited by hand. It refuses to overwrite an existing
-  `.env`; pass `--force` to replace one.
-- **No password prompt.** Neither script asks for `sudo`. Wiping the state directory needs
-  root because the engine writes as UID 999/1000, and that root comes from a throwaway
-  container rather than from the host. The one host setting the indexer requires,
-  `vm.max_map_count`, is already high enough on most kernels; when it is not, the script
-  prints the single command to run and stops rather than prompting.
+- **Flags:** none. `claim.sh` writes the `.env` if it is missing, brings the stack up,
+  replays every rule variant, and verifies the paper against the resulting CSVs. The
+  generated `.env` carries random passwords and their bcrypt hashes; `scripts/make-env.sh
+  --force` replaces an existing one.
+- **No password prompt.** Neither script asks for `sudo`. If `vm.max_map_count` is below
+  what the indexer needs, the script prints the one command to run and stops.
 - **Expected time:** ~5-10 min to bring the stack up, then ~3-5 min per rule variant.
 - **Expected resources:** Docker with the compose plugin, ~4 GB RAM, ~5 GB disk.
 - **Expected result:** the same framed block the *Minimal test* prints, with the
   provenance line reading `re-measured through the Wazuh engine on this machine`
   instead of `recomputed from the committed labeled CSVs`, and ending in
-  `RESULT: OK (52/52 published values match the paper)`. Nothing to open in a browser.
-  Step-by-step detail in [`docs/full-replay.md`](docs/full-replay.md).
+  `RESULT: OK (52/52 published values match the paper)`. Step-by-step detail in
+  [`docs/full-replay.md`](docs/full-replay.md).
 
 ## Repository layout
 
