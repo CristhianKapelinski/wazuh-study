@@ -16,25 +16,41 @@ number printed in the paper.
 
 | Section | Description |
 |---|---|
-| [Considered badges](#considered-badges) | Which seals this artifact targets and why |
+| [Considered seals](#considered-seals) | Which seals this artifact targets and why |
 | [Basic information](#basic-information) | Reference machine and requirements |
 | [Dependencies](#dependencies) | Pinned software and data inputs |
 | [Security concerns](#security-concerns) | What runs where |
 | [Installation](#installation) | Clone; nothing else for the main path |
 | [Minimal test](#minimal-test) | One command, < 1 s |
 | [Experiments](#experiments) | Claim #1: replay through the Wazuh engine (Docker) |
+| [Cleaning up](#cleaning-up) | One command removes what a run created |
 | [Citation](#citation) | How to cite the paper |
 | [LICENSE](#license) | MIT |
 
-## Considered badges
+The repository is organized as follows:
 
-- **Disponível (SeloD):** the artifact is public at a stable URL with an open
+```
+reproduce.sh              main path: recompute + verify every paper number
+expected/                 paper values (52 checks) + SHA-256 pins
+dataset/                  frozen anonymized sample + labeled baseline CSV
+prompts/                  the three prompt variants sent to the LLM
+results/                  run of record: 4 rule sets, per-run labeled CSVs, metrics
+scripts/                  metrics.py, verify_values.py, summarize.py, replay helpers
+docs/                     methodology, labels rationale, org profile,
+                          full-replay guide, REPRODUCIBILITY_REPORT.md
+run.sh, Makefile, manager/, rules/   optional full-replay stack
+```
+
+
+## Considered seals
+
+- **Available (SeloD):** the artifact is public at a stable URL with an open
   license.
-- **Funcional (SeloF):** `./reproduce.sh` runs the whole evaluation pipeline
+- **Functional (SeloF):** `./reproduce.sh` runs the whole evaluation pipeline
   end to end on the committed data in under a second, with no network or Docker.
-- **Sustentável (SeloS):** small typed Python modules with one responsibility
+- **Sustainable (SeloS):** small typed Python modules with one responsibility
   each, documented layout, pinned inputs (`expected/checksums.sha256`).
-- **Reprodutível (SeloR):** every number printed in the paper (52 checks:
+- **Reproducible (SeloR):** every number printed in the paper (52 checks:
   metrics, supports, confusion-matrix cells, headline deltas) is recomputed
   from the committed data and compared at the paper's own precision;
   `./reproduce.sh` exits 0 only when all pass.
@@ -82,7 +98,7 @@ Nothing else to install for the main path.
 ## Minimal test
 
 One command exercises the full pipeline (checksum verification → metric
-recomputation → verification against the paper), about 0.2 s on the reference
+recomputation → verification against the paper), 0.15 s on the reference
 machine:
 
 ```bash
@@ -154,20 +170,6 @@ machine. The paper's 52 values are then verified against those.
   committed run is compared exactly. Why they are refused, and
   why they are not edited, is in [`docs/dataset-repair.md`](docs/dataset-repair.md).
   Step-by-step detail in [`docs/full-replay.md`](docs/full-replay.md).
-
-## Repository layout
-
-```
-reproduce.sh              main path: recompute + verify every paper number
-expected/                 paper values (52 checks) + SHA-256 pins
-dataset/                  frozen anonymized sample + labeled baseline CSV
-prompts/                  the three prompt variants sent to the LLM
-results/                  run of record: 4 rule sets, per-run labeled CSVs, metrics
-scripts/                  metrics.py, verify_values.py, summarize.py, replay helpers
-docs/                     methodology, labels rationale, org profile,
-                          full-replay guide, REPRODUCIBILITY_REPORT.md
-run.sh, Makefile, manager/, rules/   optional full-replay stack
-```
 
 ## Cleaning up
 
