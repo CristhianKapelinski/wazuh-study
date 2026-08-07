@@ -33,6 +33,7 @@ def main() -> int:
     out = Path(sys.argv[1])
     source = Path(sys.argv[2])
     npass, nfail, nskip = (int(x) for x in sys.argv[3:6])
+    live, reused = (int(x) for x in (sys.argv[6:8] or ("0", "0")))
 
     summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
 
@@ -51,10 +52,13 @@ def main() -> int:
     print(SEP)
     print(f"  {'every published value':<36}: {npass} pass / {nfail} fail / {nskip} skip")
     print(SEP)
-    live = source.name != "results"
-    if live:
-        print(f"  {'source of these numbers':<36}: re-measured through the Wazuh engine")
-        print(f"  {'':<36}  on this machine ({source}/)")
+    if source.name != "results":
+        total_v = live + reused
+        print(f"  {'source of these numbers':<36}: {live} of {total_v} rule sets re-measured")
+        print(f"  {'':<36}  through the engine here ({source}/)")
+        if reused:
+            print(f"  {'':<36}  {reused} refused by Wazuh, read from the")
+            print(f"  {'':<36}  committed run")
     else:
         print(f"  {'source of these numbers':<36}: recomputed from the committed labeled")
         print(f"  {'':<36}  CSVs ({source}/); run ./claim.sh to measure live")

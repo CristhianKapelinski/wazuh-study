@@ -139,15 +139,15 @@ machine. The paper's 52 values are then verified against those.
   replays every rule variant, and verifies the paper against the resulting CSVs. The
   generated `.env` carries random passwords and their bcrypt hashes; `scripts/make-env.sh
   --force` replaces an existing one.
-- **No password prompt.** Neither script asks for `sudo`. If `vm.max_map_count` is below
-  what the indexer needs, the script prints the one command to run and stops.
 - **Expected time:** ~5-10 min to bring the stack up, then ~3-5 min per rule variant.
 - **Expected resources:** Docker with the compose plugin, ~4 GB RAM, ~5 GB disk.
-- **Expected result:** the same framed block the *Minimal test* prints, with the
-  provenance line reading `re-measured through the Wazuh engine on this machine`
-  instead of `recomputed from the committed labeled CSVs`, and ending in
-  `RESULT: OK (52/52 published values match the paper)`. Step-by-step detail in
-  [`docs/full-replay.md`](docs/full-replay.md).
+- **Expected result:** the same framed block the *Minimal test* prints, ending in
+  `RESULT: OK (52/52 published values match the paper)`, with the provenance line naming
+  how many of the four rule sets were re-measured here. Wazuh 4.14.5 refuses three of the
+  four generated sets, so the usual outcome is `1 of 4 rule sets re-measured`; the refused
+  ones are read from the committed run and named in the output. Why they are refused, and
+  why they are not edited, is in [`docs/dataset-repair.md`](docs/dataset-repair.md).
+  Step-by-step detail in [`docs/full-replay.md`](docs/full-replay.md).
 
 ## Repository layout
 

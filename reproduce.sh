@@ -44,10 +44,24 @@ $SHA -c expected/checksums.sha256
 echo "== recomputing metrics =="
 python3 scripts/metrics.py dataset/dataset-1000-baseline.csv \
   severidade_manual severidade_wazuh --json "$OUT/native.json" > "$OUT/native.txt"
+# Wazuh refuses three of the four generated rule sets, so a live replay produces a fresh
+# CSV only for the variants it could load. The others fall back to the committed one and
+# are named here and in the final block, so the evaluator always knows which numbers were
+# measured on their machine and which were replayed.
+LIVE=0; REUSED=0; REUSED_LIST=""
 for RUN in runA-v2 runB-v2 runC-minimal runD-with-logs; do
-  python3 scripts/metrics.py "$SRC/results-$RUN/dataset.csv" \
+  CSV="$SRC/results-$RUN/dataset.csv"
+  if [ -f "$CSV" ]; then
+    LIVE=$((LIVE + 1))
+  else
+    CSV="results/results-$RUN/dataset.csv"
+    REUSED=$((REUSED + 1)); REUSED_LIST="$REUSED_LIST $RUN"
+    [ -f "$CSV" ] || { echo "missing both $SRC/results-$RUN/dataset.csv and $CSV" >&2; exit 1; }
+  fi
+  python3 scripts/metrics.py "$CSV" \
     severidade_manual severidade_wazuh_llm --json "$OUT/$RUN.json" > "$OUT/$RUN.txt"
 done
+[ -n "$REUSED_LIST" ] && echo "   not re-measured (Wazuh refused the rule set):$REUSED_LIST"
 python3 scripts/summarize.py "$OUT"
 
 echo "== verifying against the paper =="
@@ -59,5 +73,5 @@ read -r P F S <<EOF
 $(printf '%s\n' "$VERIFY" | sed -n 's/^\([0-9]*\) pass \/ \([0-9]*\) fail \/ \([0-9]*\) skip.*/\1 \2 \3/p' | tail -1)
 EOF
 SIEM_CLAIM_ELAPSED="$(( $(date +%s) - _T0 ))" \
-  python3 scripts/show_claim.py "$OUT" "$SRC" "${P:-0}" "${F:-0}" "${S:-0}" || VRC=1
+  python3 scripts/show_claim.py "$OUT" "$SRC" "${P:-0}" "${F:-0}" "${S:-0}" "$LIVE" "$REUSED" || VRC=1
 exit "$VRC"
