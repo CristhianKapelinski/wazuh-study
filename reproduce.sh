@@ -8,9 +8,19 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-OUT="out"
-[ "${1:-}" = "--out" ] && OUT="${2:?usage: ./reproduce.sh [--out DIR]}"
+# --from points the per-run CSVs at a directory other than the committed `results/`,
+# which is how the live path feeds its freshly labeled CSVs through the same
+# verification instead of duplicating it.
+OUT="out"; SRC="results"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --out)  OUT="${2:?usage: ./reproduce.sh [--out DIR] [--from DIR]}"; shift 2 ;;
+    --from) SRC="${2:?usage: ./reproduce.sh [--out DIR] [--from DIR]}"; shift 2 ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+done
 mkdir -p "$OUT"
+_T0=$(date +%s)
 
 # Fail with the command that fixes it, not with a traceback three steps later.
 command -v python3 >/dev/null || {
@@ -35,10 +45,19 @@ echo "== recomputing metrics =="
 python3 scripts/metrics.py dataset/dataset-1000-baseline.csv \
   severidade_manual severidade_wazuh --json "$OUT/native.json" > "$OUT/native.txt"
 for RUN in runA-v2 runB-v2 runC-minimal runD-with-logs; do
-  python3 scripts/metrics.py "results/results-$RUN/dataset.csv" \
+  python3 scripts/metrics.py "$SRC/results-$RUN/dataset.csv" \
     severidade_manual severidade_wazuh_llm --json "$OUT/$RUN.json" > "$OUT/$RUN.txt"
 done
 python3 scripts/summarize.py "$OUT"
 
 echo "== verifying against the paper =="
-python3 scripts/verify_values.py --results "$OUT"
+set +e
+VERIFY="$(python3 scripts/verify_values.py --results "$OUT")"; VRC=$?
+set -e
+echo "$VERIFY"
+read -r P F S <<EOF
+$(printf '%s\n' "$VERIFY" | sed -n 's/^\([0-9]*\) pass \/ \([0-9]*\) fail \/ \([0-9]*\) skip.*/\1 \2 \3/p' | tail -1)
+EOF
+SIEM_CLAIM_ELAPSED="$(( $(date +%s) - _T0 ))" \
+  python3 scripts/show_claim.py "$OUT" "$SRC" "${P:-0}" "${F:-0}" "${S:-0}" || VRC=1
+exit "$VRC"

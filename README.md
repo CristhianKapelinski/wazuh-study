@@ -95,8 +95,23 @@ machine:
   the committed labeled CSVs, and all 52 published values are checked against the paper at
   its own precision, one `PASS <check-id>` line each, ending in:
 
-```
-52 pass / 0 fail / 0 skip
+```text
+══════════════════════════════════════════════════════════════════
+  Claim: the LLM-augmented ruleset trails the native baseline, and the
+         two identical runs agree
+──────────────────────────────────────────────────────────────────
+  accuracy lost to the baseline (pp)  : 4.4     (paper 4.4  ) OK   [Abstract / Sec. 5.2]
+  weighted F1 lost (pp)               : 3.1     (paper 3.1  ) OK   [Abstract / Sec. 5.2]
+  runs A and B identical              : True    (paper True ) OK   [Sec. 5.2]
+──────────────────────────────────────────────────────────────────
+  every published value               : 52 pass / 0 fail / 0 skip
+──────────────────────────────────────────────────────────────────
+  source of these numbers             : recomputed from the committed labeled
+                                        CSVs (results/); run ./claim.sh to measure live
+  wall clock on this machine          : 0 s
+──────────────────────────────────────────────────────────────────
+  RESULT: OK   (52/52 published values match the paper)
+══════════════════════════════════════════════════════════════════
 ```
 
   The script exits non-zero if any check fails. `out/summary.json` carries the headline
@@ -125,11 +140,13 @@ instead of reusing the committed ones. `./reproduce.sh` then verifies the paper'
 against *those*, closing the loop between the engine and the published tables.
 
 ```bash
-./scripts/make-env.sh && ./run.sh --fresh
+./claim.sh
 ```
 
-- **Flags:** `--fresh` wipes previous state so the run starts from scratch.
-  `scripts/make-env.sh` writes the `.env` the stack needs, generating strong random
+- **Flags:** none. `claim.sh` writes the `.env` if it is missing, brings the stack up
+  with `run.sh --fresh`, replays every rule variant through the engine, and then runs
+  `./reproduce.sh --from out-full` so the paper is verified against the CSVs the engine
+  just produced. `scripts/make-env.sh` writes the `.env` the stack needs, generating strong random
   passwords and their bcrypt hashes in a throwaway container, so nothing extra is installed
   on the host and no placeholder is edited by hand. It refuses to overwrite an existing
   `.env`; pass `--force` to replace one.
@@ -140,9 +157,11 @@ against *those*, closing the loop between the engine and the published tables.
   prints the single command to run and stops rather than prompting.
 - **Expected time:** ~5-10 min to bring the stack up, then ~3-5 min per rule variant.
 - **Expected resources:** Docker with the compose plugin, ~4 GB RAM, ~5 GB disk.
-- **Expected result:** labeled CSVs regenerated under `out/`, after which `./reproduce.sh`
-  prints `52 pass / 0 fail / 0 skip` against them. Full procedure in
-  [`docs/full-replay.md`](docs/full-replay.md).
+- **Expected result:** the same framed block the *Minimal test* prints, with the
+  provenance line reading `re-measured through the Wazuh engine on this machine`
+  instead of `recomputed from the committed labeled CSVs`, and ending in
+  `RESULT: OK (52/52 published values match the paper)`. Nothing to open in a browser.
+  Step-by-step detail in [`docs/full-replay.md`](docs/full-replay.md).
 
 ## Repository layout
 

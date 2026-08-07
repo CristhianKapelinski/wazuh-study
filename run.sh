@@ -18,6 +18,18 @@ FRESH="${1:-}"
 c_ok(){ printf '\033[32m✓\033[0m %s\n' "$*"; }
 c_log(){ printf '\033[34m[*]\033[0m %s\n' "$*"; }
 
+# Removes a path that may hold root-owned files. The certificate generator and the
+# engine both write as root, so a plain rm leaves a directory the reviewer cannot delete
+# even with rm -rf, which is how people end up stuck with an undeletable clone. Docker is
+# a declared dependency here; sudo is not, and it must never be prompted for.
+rm_rf_root() {
+  local target="$1"
+  [ -e "$target" ] || return 0
+  rm -rf "$target" 2>/dev/null && [ ! -e "$target" ] && return 0
+  docker run --rm -v "$(cd "$(dirname "$target")" && pwd):/p" alpine \
+    sh -c "rm -rf '/p/$(basename "$target")'" >/dev/null 2>&1 || true
+}
+
 command -v docker >/dev/null || { echo "docker not found"; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "docker compose (plugin) not found"; exit 1; }
 
@@ -47,7 +59,7 @@ if [ ! -d "$STACK" ]; then
 fi
 
 c_log "preparing stack"
-rm -rf stack && mkdir -p stack
+rm_rf_root stack && mkdir -p stack
 cp -r "$STACK/." stack/
 cp manager/compose.override.yml stack/docker-compose.override.yml
 cp .env stack/.env
@@ -73,15 +85,14 @@ fi
 #    from the host, exactly as the bind-mount preparation below already does. Docker is
 #    a stated dependency of this claim, sudo is not, and asking for a password halfway
 #    through stops an unattended run dead.
-root_sh() { docker run --rm -v "$DD:/d" alpine sh -c "$1"; }
 if [ ! -d "$DD" ] || [ ! -w "$DD" ]; then
   mkdir -p "$DD" 2>/dev/null || true
-  root_sh "chown $(id -u):$(id -g) /d" 2>/dev/null || true
+  docker run --rm -v "$DD:/d" alpine sh -c "chown $(id -u):$(id -g) /d" 2>/dev/null || true
 fi
 if [ "$FRESH" = "--fresh" ]; then
   c_log "--fresh: wiping containers and data"
   ( cd stack && docker compose down -v 2>/dev/null || true )
-  root_sh 'rm -rf /d/..?* /d/.[!.]* /d/*' 2>/dev/null || true
+  docker run --rm -v "$DD:/d" alpine sh -c 'rm -rf /d/..?* /d/.[!.]* /d/*' 2>/dev/null || true
 fi
 
 # 4. bind mounts: all directory handling via a root container (avoids host
