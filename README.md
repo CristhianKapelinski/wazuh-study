@@ -12,6 +12,8 @@ number printed in the paper.
 
 > Paper: P. Schafhauzer, C. Kapelinski, M. Pohlmann, D. Kreutz. SBSeg 2026.
 
+> **For the artifact evaluation, this README is the only file you need to read.** The other Markdown files in the repository are complementary: they document internals and go deeper than the review requires.
+
 ## README structure
 
 | Section | Description |
