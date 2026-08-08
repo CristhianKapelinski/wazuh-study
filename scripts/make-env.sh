@@ -20,7 +20,8 @@ if [ -f .env ] && [ "$FORCE" != "--force" ]; then
   exit 1
 fi
 
-command -v docker >/dev/null || { echo "need: docker (the full replay needs it anyway)" >&2; exit 1; }
+. "$(dirname "$0")/require.sh"
+require_docker
 
 # Wazuh rejects a password that has no special character ("Error 5007 -
 # Insecure user password provided") and the manager then crash-loops, so build

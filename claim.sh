@@ -10,8 +10,10 @@ set -euo pipefail
 cd "$(dirname "$0")"
 _T0=$(date +%s)   # o relogio conta a claim inteira, nao so a verificacao final
 
-command -v docker >/dev/null || { echo "need: docker (with the compose plugin)" >&2; exit 1; }
-docker compose version >/dev/null 2>&1 || { echo "need: the docker compose plugin" >&2; exit 1; }
+. ./scripts/require.sh
+require_git
+require_docker
+require_compose
 
 [ -f .env ] || ./scripts/make-env.sh
 

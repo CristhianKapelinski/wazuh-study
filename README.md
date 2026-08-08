@@ -70,6 +70,32 @@ run.sh, Makefile, manager/, rules/   optional full-replay stack
 
 ## Dependencies
 
+- **Host tools, main path:** `git` (to clone) and `python3` 3.8 or newer. Nothing else;
+  the analysis uses the standard library only.
+
+  ```bash
+  sudo apt-get update && sudo apt-get install -y git python3   # Debian, Ubuntu
+  sudo dnf install -y git python3                              # Fedora, RHEL
+  sudo pacman -Sy --needed git python                          # Arch
+  sudo zypper install -y git python3                           # openSUSE
+  ```
+
+- **Host tools, Claim #1 (`./claim.sh`):** additionally `docker` **and the compose
+  plugin v2** — the `docker compose` subcommand, not the standalone `docker-compose`
+  binary. The daemon must be running and usable by your user without `sudo`.
+
+  ```bash
+  sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2   # Debian, Ubuntu
+  sudo usermod -aG docker "$USER" && newgrp docker
+  ```
+
+  Package names differ between distributions and releases; on Fedora, Arch and
+  openSUSE, and on older Ubuntu, follow the upstream instructions instead:
+  [Docker Engine](https://docs.docker.com/engine/install/) and
+  [Compose plugin](https://docs.docker.com/compose/install/linux/). `claim.sh` checks
+  for all three (git, docker, the compose plugin, and a reachable daemon) before doing
+  any work and prints the command for the package manager it finds.
+
 - **Main path:** Python 3 standard library only; no packages to install.
 - **Data inputs:** all committed and pinned by SHA-256
   (`expected/checksums.sha256`): the frozen anonymized sample
