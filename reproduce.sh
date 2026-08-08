@@ -49,9 +49,16 @@ python3 scripts/metrics.py dataset/dataset-1000-baseline.csv \
 # are named here and in the final block, so the evaluator always knows which numbers were
 # measured on their machine and which were replayed.
 LIVE=0; REUSED=0; REUSED_LIST=""; LIVE_ARTIFACTS=""
+# A variant counts as live only when it came from somewhere this run produced, i.e. when
+# --from pointed at a replay directory. Testing only for the file's existence marked all
+# four live on every plain run, because results/ is committed -- and "live" selects the
+# replay tolerance (+/-0.005, +/-5 counts) instead of the paper's exact precision. The
+# standard path therefore compared committed numbers loosely while the README promised
+# the opposite, so a regression of up to half a point could pass unseen. The real
+# divergence this campaign found was 0.006, which cleared that tolerance by 0.001.
 for RUN in runA-v2 runB-v2 runC-minimal runD-with-logs; do
   CSV="$SRC/results-$RUN/dataset.csv"
-  if [ -f "$CSV" ]; then
+  if [ "$SRC" != results ] && [ -f "$CSV" ]; then
     LIVE=$((LIVE + 1)); LIVE_ARTIFACTS="${LIVE_ARTIFACTS:+$LIVE_ARTIFACTS,}$RUN.json"
   else
     CSV="results/results-$RUN/dataset.csv"
