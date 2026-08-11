@@ -32,8 +32,9 @@ number printed in the paper.
 The repository is organized as follows:
 
 ```
-reproduce.sh              main path: recompute + verify every paper number
-expected/                 paper values (52 checks) + SHA-256 pins
+reproduce.sh              main path: recompute + verify + print the paper's tables
+expected/                 paper values (52 checks), the paper's two result
+                          tables cell by cell, and SHA-256 pins
 dataset/                  frozen anonymized sample + labeled baseline CSV
 prompts/                  the three prompt variants sent to the LLM
 results/                  run of record: 4 rule sets, per-run labeled CSVs, metrics
@@ -54,8 +55,10 @@ run.sh, Makefile, manager/, rules/   optional full-replay stack
   each, documented layout, pinned inputs (`expected/checksums.sha256`).
 - **Reproducible (SeloR):** every number printed in the paper (52 checks:
   metrics, supports, confusion-matrix cells, headline deltas) is recomputed
-  from the committed data and compared at the paper's own precision;
-  `./reproduce.sh` exits 0 only when all pass.
+  from the committed data and compared at the paper's own precision, and both
+  result tables are reprinted cell by cell (63 cells) so the outcome itself,
+  not only its verdict, comes out of the run; `./reproduce.sh` exits 0 only
+  when all pass.
 
 ## Basic information
 
@@ -137,7 +140,27 @@ machine:
 - **Expected resources:** 13 MB peak RAM, under 10 MB written to `out/`. No network, no Docker.
 - **Expected result:** the checksums verify, the native and LLM metrics are recomputed from
   the committed labeled CSVs, and all 52 published values are checked against the paper at
-  its own precision, one `PASS <check-id>` line each, ending in:
+  its own precision, one `PASS <check-id>` line each. The run then prints the paper's two
+  result tables as recomputed here, so the outcome can be read off the run and compared
+  with the PDF cell by cell:
+
+```text
+  Table 3: Confusion matrices (rows: gold; columns: prediction; ...)
+
+    LLM run A
+      gold \ pred     none     low  medium    high
+      none             374     270       0       0
+      low                0       0      90       2
+      medium             0       0     203      45
+      high               0       3       0      12
+      plus 1 in the critical column the paper omits (gold medium)
+
+──────────────────────────────────────────────────────────────────
+  63 of 63 published cells reproduce exactly (30/30 in Table 2, 33/33 in Table 3)
+```
+
+  A cell that did not reproduce is printed as `recomputed!=paper` in place of the value,
+  so a divergence is visible in the table itself. The run ends with the verdict:
 
 ```text
 ══════════════════════════════════════════════════════════════════

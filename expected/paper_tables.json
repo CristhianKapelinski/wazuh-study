@@ -1,0 +1,72 @@
+{
+  "_comment": [
+    "The paper's result tables, cell by cell, exactly as printed in the camera-ready.",
+    "scripts/show_tables.py renders them next to the values recomputed on this machine,",
+    "so every number the paper reports can be read off the run and compared with the PDF.",
+    "Values are strings so each cell is compared at the paper's own printed precision,",
+    "the same rule scripts/verify_values.py applies to expected/paper_values.json.",
+    "Cells that also appear in paper_values.json are cross-checked against it at startup,",
+    "so the two files cannot drift apart."
+  ],
+  "table2": {
+    "number": "Table 2",
+    "caption": "Per-class metrics: native Wazuh vs. the LLM configuration (runs A/B).",
+    "classes": ["none", "low", "medium", "high"],
+    "configs": [
+      {
+        "label": "Native",
+        "artifact": "native.json",
+        "classes": {
+          "none":   {"precision": "1.000", "recall": "0.581", "f1": "0.735"},
+          "low":    {"precision": "0.000", "recall": "0.000", "f1": "0.000"},
+          "medium": {"precision": "0.729", "recall": "0.992", "f1": "0.840"},
+          "high":   {"precision": "0.923", "recall": "0.800", "f1": "0.857"}
+        },
+        "aggregate": {"accuracy": "0.633", "macro_f1": "0.486", "weighted_f1": "0.695"}
+      },
+      {
+        "label": "LLM (runs A/B)",
+        "artifact": "runA-v2.json",
+        "classes": {
+          "none":   {"precision": "1.000", "recall": "0.581", "f1": "0.735"},
+          "low":    {"precision": "0.000", "recall": "0.000", "f1": "0.000"},
+          "medium": {"precision": "0.693", "recall": "0.815", "f1": "0.749"},
+          "high":   {"precision": "0.203", "recall": "0.800", "f1": "0.324"}
+        },
+        "aggregate": {"accuracy": "0.589", "macro_f1": "0.362", "weighted_f1": "0.665"}
+      }
+    ]
+  },
+  "table3": {
+    "number": "Table 3",
+    "caption": "Confusion matrices (rows: gold; columns: prediction; the near-empty critical column is omitted).",
+    "classes": ["none", "low", "medium", "high"],
+    "matrices": [
+      {
+        "label": "Native Wazuh",
+        "artifact": "native.json",
+        "rows": {
+          "none":   {"none": "374", "low": "270", "medium": "0",   "high": "0"},
+          "low":    {"none": "0",   "low": "0",   "medium": "92",  "high": "0"},
+          "medium": {"none": "0",   "low": "1",   "medium": "247", "high": "1"},
+          "high":   {"none": "0",   "low": "3",   "medium": "0",   "high": "12"}
+        }
+      },
+      {
+        "label": "LLM run A",
+        "artifact": "runA-v2.json",
+        "rows": {
+          "none":   {"none": "374", "low": "270", "medium": "0",   "high": "0"},
+          "low":    {"none": "0",   "low": "0",   "medium": "90",  "high": "2"},
+          "medium": {"none": "0",   "low": "0",   "medium": "203", "high": "45"},
+          "high":   {"none": "0",   "low": "3",   "medium": "0",   "high": "12"}
+        },
+        "omitted": {
+          "path": "confusion.medium.critical",
+          "expect": "1",
+          "note": "in the critical column the paper omits (gold medium)"
+        }
+      }
+    ]
+  }
+}
