@@ -1,14 +1,6 @@
 # wazuh-study: Context-Aware SIEM Rule Generation with LLMs
 
-Replication package for the SBSeg 2026 paper *"Context-Aware SIEM Rule
-Generation with LLMs: When Site Profiles Are Not Enough"* (Main Track, short paper). An LLM conditioned only on an organization
-profile writes Wazuh local rules; over a fixed set of 1,000 real SSH
-authentication events, the LLM-augmented configuration **lowers accuracy by
-4.4 percentage points** (weighted F1 by 3.1) relative to the native ruleset,
-with the regression concentrated in a single failure mode. The package
-contains the anonymized dataset, the prompts, the four generated rule sets,
-the per-run labeled CSVs, and the scripts that recompute and verify every
-number printed in the paper.
+Replication package for the SBSeg 2026 paper *"Context-Aware SIEM Rule Generation with LLMs: When Site Profiles Are Not Enough"* (Main Track, short paper). An LLM conditioned only on an organization profile writes Wazuh local rules; over a fixed set of 1,000 real SSH authentication events, the LLM-augmented configuration **lowers accuracy by 4.4 percentage points** (weighted F1 by 3.1) relative to the native ruleset, with the regression concentrated in a single failure mode. The package contains the anonymized dataset, the prompts, the four generated rule sets, the per-run labeled CSVs, and the scripts that recompute and verify every number printed in the paper.
 
 > Paper: P. Schafhauzer, C. Kapelinski, M. Pohlmann, D. Kreutz. SBSeg 2026.
 
@@ -47,18 +39,10 @@ run.sh, Makefile, manager/, rules/   optional full-replay stack
 
 ## Considered seals
 
-- **Available (SeloD):** the artifact is public at a stable URL with an open
-  license.
-- **Functional (SeloF):** `./reproduce.sh` runs the whole evaluation pipeline
-  end to end on the committed data in under a second, with no network or Docker.
-- **Sustainable (SeloS):** small typed Python modules with one responsibility
-  each, documented layout, pinned inputs (`expected/checksums.sha256`).
-- **Reproducible (SeloR):** every number printed in the paper (52 checks:
-  metrics, supports, confusion-matrix cells, headline deltas) is recomputed
-  from the committed data and compared at the paper's own precision, and both
-  result tables are reprinted cell by cell (63 cells) so the outcome itself,
-  not only its verdict, comes out of the run; `./reproduce.sh` exits 0 only
-  when all pass.
+- **Available (SeloD):** the artifact is public at a stable URL with an open license.
+- **Functional (SeloF):** `./reproduce.sh` runs the whole evaluation pipeline end to end on the committed data in under a second, with no network or Docker.
+- **Sustainable (SeloS):** small typed Python modules with one responsibility each, documented layout, pinned inputs (`expected/checksums.sha256`).
+- **Reproducible (SeloR):** every number printed in the paper (52 checks: metrics, supports, confusion-matrix cells, headline deltas) is recomputed from the committed data and compared at the paper's own precision, and both result tables are reprinted cell by cell (63 cells) so the outcome itself, not only its verdict, comes out of the run; `./reproduce.sh` exits 0 only when all pass.
 
 ## Basic information
 
@@ -73,8 +57,7 @@ run.sh, Makefile, manager/, rules/   optional full-replay stack
 
 ## Dependencies
 
-- **Host tools, main path:** `git` (to clone) and `python3` 3.8 or newer. Nothing else;
-  the analysis uses the standard library only.
+- **Host tools, main path:** `git` (to clone) and `python3` 3.8 or newer. Nothing else; the analysis uses the standard library only.
 
   ```bash
   sudo apt-get update && sudo apt-get install -y git python3   # Debian, Ubuntu
@@ -83,39 +66,24 @@ run.sh, Makefile, manager/, rules/   optional full-replay stack
   sudo zypper install -y git python3                           # openSUSE
   ```
 
-- **Host tools, Claim #1 (`./claim.sh`):** additionally `docker` **and the compose
-  plugin v2** — the `docker compose` subcommand, not the standalone `docker-compose`
-  binary. The daemon must be running and usable by your user without `sudo`.
+- **Host tools, Claim #1 (`./claim.sh`):** additionally `docker` **and the compose plugin v2**, the `docker compose` subcommand, not the standalone `docker-compose` binary. The daemon must be running and usable by your user without `sudo`.
 
   ```bash
   sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2   # Debian, Ubuntu
   sudo usermod -aG docker "$USER" && newgrp docker
   ```
 
-  Package names differ between distributions and releases; on Fedora, Arch and
-  openSUSE, and on older Ubuntu, follow the upstream instructions instead:
-  [Docker Engine](https://docs.docker.com/engine/install/) and
-  [Compose plugin](https://docs.docker.com/compose/install/linux/). `claim.sh` checks
-  for all three (git, docker, the compose plugin, and a reachable daemon) before doing
-  any work and prints the command for the package manager it finds.
+  Package names differ between distributions and releases; on Fedora, Arch and openSUSE, and on older Ubuntu, follow the upstream instructions instead: [Docker Engine](https://docs.docker.com/engine/install/) and [Compose plugin](https://docs.docker.com/compose/install/linux/). `claim.sh` checks for all three (git, docker, the compose plugin, and a reachable daemon) before doing any work and prints the command for the package manager it finds.
 
 - **Main path:** Python 3 standard library only; no packages to install.
-- **Data inputs:** all committed and pinned by SHA-256
-  (`expected/checksums.sha256`): the frozen anonymized sample
-  (`dataset/sample-1000.log`, 1,000 events), the labeled baseline CSV, the
-  four per-run labeled CSVs, and the four LLM-generated rule sets.
-- **Optional full replay:** Docker with the compose plugin; `run.sh` fetches
-  the official `wazuh-docker` stack pinned at **v4.14.5**.
+- **Data inputs:** all committed and pinned by SHA-256 (`expected/checksums.sha256`): the frozen anonymized sample (`dataset/sample-1000.log`, 1,000 events), the labeled baseline CSV, the four per-run labeled CSVs, and the four LLM-generated rule sets.
+- **Optional full replay:** Docker with the compose plugin; `run.sh` fetches the official `wazuh-docker` stack pinned at **v4.14.5**.
 
 ## Security concerns
 
-- The main path only reads committed CSVs and writes to `out/`; no network,
-  no containers, no credentials.
-- The optional full replay runs a local Wazuh stack whose dashboard binds to
-  `127.0.0.1` only, with credentials you set in a local `.env` (never
-  committed).
-- The dataset is anonymized (RFC 5737 IPs, surrogate usernames/hostnames,
-  synthetic fingerprints); see `docs/methodology.md`.
+- The main path only reads committed CSVs and writes to `out/`; no network, no containers, no credentials.
+- The optional full replay runs a local Wazuh stack whose dashboard binds to `127.0.0.1` only, with credentials you set in a local `.env` (never committed).
+- The dataset is anonymized (RFC 5737 IPs, surrogate usernames/hostnames, synthetic fingerprints); see `docs/methodology.md`.
 
 ## Installation
 
@@ -128,9 +96,7 @@ Nothing else to install for the main path.
 
 ## Minimal test
 
-One command exercises the full pipeline (checksum verification → metric
-recomputation → verification against the paper), 0.15 s on the reference
-machine:
+One command exercises the full pipeline (checksum verification → metric recomputation → verification against the paper), 0.15 s on the reference machine:
 
 ```bash
 ./reproduce.sh
@@ -138,11 +104,7 @@ machine:
 
 - **Expected time:** 0.15 s (measured; see *Basic information*).
 - **Expected resources:** 13 MB peak RAM, under 10 MB written to `out/`. No network, no Docker.
-- **Expected result:** the checksums verify, the native and LLM metrics are recomputed from
-  the committed labeled CSVs, and all 52 published values are checked against the paper at
-  its own precision, one `PASS <check-id>` line each. The run then prints the paper's two
-  result tables as recomputed here, so the outcome can be read off the run and compared
-  with the PDF cell by cell:
+- **Expected result:** the checksums verify, the native and LLM metrics are recomputed from the committed labeled CSVs, and all 52 published values are checked against the paper at its own precision, one `PASS <check-id>` line each. The run then prints the paper's two result tables as recomputed here, so the outcome can be read off the run and compared with the PDF cell by cell:
 
 ```text
   Table 3: Confusion matrices (rows: gold; columns: prediction; ...)
@@ -159,8 +121,7 @@ machine:
   63 of 63 published cells reproduce exactly (30/30 in Table 2, 33/33 in Table 3)
 ```
 
-  A cell that did not reproduce is printed as `recomputed!=paper` in place of the value,
-  so a divergence is visible in the table itself. The run ends with the verdict:
+  A cell that did not reproduce is printed as `recomputed!=paper` in place of the value, so a divergence is visible in the table itself. The run ends with the verdict:
 
 ```text
 ══════════════════════════════════════════════════════════════════
@@ -181,12 +142,7 @@ machine:
 ══════════════════════════════════════════════════════════════════
 ```
 
-  The script exits non-zero if any check fails. `out/summary.json` carries the headline
-  deltas (`"drop_accuracy_pp": 4.4`, `"drop_weighted_f1_pp": 3.1`,
-  `"runs_ab_identical": true`) and `out/summary.csv` reproduces the aggregate columns of
-  Table 2. Every other number in the paper is a field of the same run: per-class precision,
-  recall and F1 in `out/native.json` and `out/run*.json`, and the confusion matrices of
-  Table 3 in their `confusion` fields.
+  The script exits non-zero if any check fails. `out/summary.json` carries the headline deltas (`"drop_accuracy_pp": 4.4`, `"drop_weighted_f1_pp": 3.1`, `"runs_ab_identical": true`) and `out/summary.csv` reproduces the aggregate columns of Table 2. Every other number in the paper is a field of the same run: per-class precision, recall and F1 in `out/native.json` and `out/run*.json`, and the confusion matrices of Table 3 in their `confusion` fields.
 
 ## Experiments
 
@@ -194,33 +150,16 @@ machine:
 
 **Paper reference:** Table 2 and Table 3.
 
-**What this runs.** The pinned Wazuh stack is brought up and the same 1,000 events are
-replayed through the engine once per rule set, producing freshly labeled CSVs on your
-machine. The paper's 52 values are then verified against those.
+**What this runs.** The pinned Wazuh stack is brought up and the same 1,000 events are replayed through the engine once per rule set, producing freshly labeled CSVs on your machine. The paper's 52 values are then verified against those.
 
 ```bash
 ./claim.sh
 ```
 
-- **Flags:** none. `claim.sh` writes the `.env` if it is missing, brings the stack up,
-  replays every rule variant, and verifies the paper against the resulting CSVs. The
-  generated `.env` carries random passwords and their bcrypt hashes; `scripts/make-env.sh
-  --force` replaces an existing one.
-- **Expected time:** **1m36s measured** on an RTX 5080 workstation with the Wazuh images
-  already pulled; the first run also pulls about 2 GB of images.
+- **Flags:** none. `claim.sh` writes the `.env` if it is missing, brings the stack up, replays every rule variant, and verifies the paper against the resulting CSVs. The generated `.env` carries random passwords and their bcrypt hashes; `scripts/make-env.sh --force` replaces an existing one.
+- **Expected time:** **1m36s measured** on an RTX 5080 workstation with the Wazuh images already pulled; the first run also pulls about 2 GB of images.
 - **Expected resources:** Docker with the compose plugin, ~4 GB RAM, ~5 GB disk.
-- **Expected result:** the same framed block the *Minimal test* prints, ending in
-  `RESULT: OK (52/52 published values match the paper)`, with the provenance line naming
-  how many of the four rule sets were re-measured here. Wazuh 4.14.5 refuses three of the
-  four generated sets, so the usual outcome is `1 of 4 rule sets re-measured`; the refused
-  ones are read from the committed run and named in the output. A re-measured value is
-  compared within a declared tolerance of 0.005 (rates) and 5 (counts) and printed as
-  `PASS ~live`: replaying the engine moves about two of the 1,000 events, which is 0.002 of
-  accuracy. Two replays on the same machine gave 0.586 and 0.590 against the paper's
-  0.588, which is the spread these bounds are sized for. Everything read from the
-  committed run is compared exactly. Why they are refused, and
-  why they are not edited, is in [`docs/dataset-repair.md`](docs/dataset-repair.md).
-  Step-by-step detail in [`docs/full-replay.md`](docs/full-replay.md).
+- **Expected result:** the same framed block the *Minimal test* prints, ending in `RESULT: OK (52/52 published values match the paper)`, with the provenance line naming how many of the four rule sets were re-measured here. Wazuh 4.14.5 refuses three of the four generated sets, so the usual outcome is `1 of 4 rule sets re-measured`; the refused ones are read from the committed run and named in the output. A re-measured value is compared within a declared tolerance of 0.005 (rates) and 5 (counts) and printed as `PASS ~live`: replaying the engine moves about two of the 1,000 events, which is 0.002 of accuracy. Two replays on the same machine gave 0.586 and 0.590 against the paper's 0.588, which is the spread these bounds are sized for. Everything read from the committed run is compared exactly. Why they are refused, and why they are not edited, is in [`docs/dataset-repair.md`](docs/dataset-repair.md). Step-by-step detail in [`docs/full-replay.md`](docs/full-replay.md).
 
 ## Cleaning up
 
@@ -234,24 +173,18 @@ Pass `--dry-run` to list what would go without removing it (the containers inclu
 
 ## Citation
 
-Priscila Schafhauzer, Cristhian Kapelinski, Marcio Pohlmann and Diego Kreutz.
-*Context-Aware SIEM Rule Generation with LLMs: When Site Profiles Are Not Enough.* Simpósio Brasileiro de Segurança da Informação e de
-Sistemas Computacionais (SBSeg), 2026.
+Priscila Schafhauzer, Cristhian Kapelinski, Marcio Pohlmann and Diego Kreutz. *Context-Aware SIEM Rule Generation with LLMs: When Site Profiles Are Not Enough.* Simpósio Brasileiro de Segurança da Informação e de Sistemas Computacionais (SBSeg), 2026.
 
 ```bibtex
 @inproceedings{schafhauzer2026siem,
-  author    = {Schafhauzer, Priscila and Kapelinski, Cristhian and
-               Pohlmann, Marcio and Kreutz, Diego},
-  title     = {Context-Aware {SIEM} Rule Generation with {LLMs}: When Site
-               Profiles Are Not Enough},
-  booktitle = {Simp\'osio Brasileiro de Seguran\c{c}a da Informa\c{c}\~ao e de
-               Sistemas Computacionais (SBSeg)},
+  author    = {Schafhauzer, Priscila and Kapelinski, Cristhian and Pohlmann, Marcio and Kreutz, Diego},
+  title     = {Context-Aware {SIEM} Rule Generation with {LLMs}: When Site Profiles Are Not Enough},
+  booktitle = {Simp\'osio Brasileiro de Seguran\c{c}a da Informa\c{c}\~ao e de Sistemas Computacionais (SBSeg)},
   year      = {2026}
 }
 ```
 
-[`CITATION.cff`](CITATION.cff) carries the same metadata in machine-readable
-form, so GitHub's "Cite this repository" button picks it up.
+[`CITATION.cff`](CITATION.cff) carries the same metadata in machine-readable form, so GitHub's "Cite this repository" button picks it up.
 
 ## LICENSE
 
