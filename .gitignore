@@ -13,3 +13,13 @@ out-full/
 .claude/
 __pycache__/
 .wazuh-data/
+
+# Paper sources never belong in the artifact repository.
+*.tex
+*.bib
+*.bbl
+*.sty
+*.bst
+*.aux
+*.blg
+*.synctex.gz
