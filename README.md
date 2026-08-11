@@ -156,7 +156,7 @@ One command runs the whole pipeline: checksum verification, metric recomputation
 - **Flags:** none. The `.env` is generated on first run with random passwords; `scripts/make-env.sh --force` replaces it.
 - **Expected time:** **105 s measured** on the reference machine with the Wazuh images already pulled, and 1m36s on an RTX 5080 workstation. The first run also pulls about 2 GB of images: 180 s here on a fast link. A slower link dominates the total.
 - **Expected resources:** Docker with the compose plugin, ~4 GB RAM, ~5 GB disk.
-- **Expected result:** the two result tables, then the framed verdict. Wazuh 4.14.5 refuses three of the four generated rule sets, so the run names the refused ones and reads them from the committed run; `runC-minimal` is the one it loads:
+- **Expected result:** the two result tables, then the framed verdict. Wazuh 4.14.5 loads one of the four generated rule sets, `runC-minimal`; the run names the other three and reads them from the committed run ([`docs/dataset-repair.md`](docs/dataset-repair.md)):
 
 ```text
    not re-measured (Wazuh refused the rule set): runA-v2 runB-v2 runD-with-logs
@@ -174,7 +174,7 @@ One command runs the whole pipeline: checksum verification, metric recomputation
   RESULT: OK   (52/52 published values match the paper)
 ```
 
-  A re-measured value is compared within a declared tolerance of 0.005 on a rate and 5 on a count, and printed as `PASS ~live`; a re-measured table cell is marked `~`. Replaying the engine moves about two of the 1,000 events, which is 0.002 of accuracy: two replays on this machine gave 0.586 and 0.590 for `runC-minimal`, against the 0.588 the paper reports for it. Everything read from the committed run is compared exactly. The refused sets are in [`docs/dataset-repair.md`](docs/dataset-repair.md), the step-by-step in [`docs/full-replay.md`](docs/full-replay.md).
+  A re-measured value is compared within a declared tolerance of 0.005 on a rate and 5 on a count, and printed as `PASS ~live`; a re-measured table cell is marked `~`. Replaying the engine moves about two of the 1,000 events, which is 0.002 of accuracy: two replays on this machine gave 0.586 and 0.590 for `runC-minimal`, against the 0.588 the paper reports for it. Everything read from the committed run is compared exactly. Step-by-step in [`docs/full-replay.md`](docs/full-replay.md).
 
 ## Cleaning up
 

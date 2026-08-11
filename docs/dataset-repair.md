@@ -86,8 +86,31 @@ Independent of the data, and fixed in [`scripts/replay-variants.sh`](../scripts/
   printed.
 
 Three of the four generated rule sets are refused by Wazuh 4.14.5: `runA-v2` and
-`runD-with-logs` carry a duplicated CIDR (`203.0.113.0/24|203.0.113.0/24`), `frequency="1"`
-(the attribute must exceed 1) and an invalid `dstuser` option; `runB-v2` carries the duplicated
-CIDR. The rule files are the model's output and the object of study, so they are **not** edited
-here: a generated rule set that a current Wazuh will not load is a property of the generation,
-and the replay now reports it as such.
+`runD-with-logs` carry a multi-address `<srcip>`, `frequency="1"` (the attribute must exceed 1)
+and an invalid `dstuser` option; `runB-v2` carries the multi-address `<srcip>`. The rule files
+are the model's output and the object of study, so they are **not** edited here: a generated
+rule set that a current Wazuh will not load is a property of the generation, and the replay
+now reports it as such.
+
+## What the refusal is, exactly
+
+Probed against a running 4.14.5 manager, restarting `wazuh-analysisd` and reading its log, with
+`runC-minimal` as the positive control (it loads) and the released `runA-v2` as the negative
+control (it does not):
+
+| `<srcip negate="yes">` content | analysisd |
+|---|---|
+| `203.0.113.0/24\|203.0.113.0/24` (as released) | `ERROR: (1237): Invalid ip address` |
+| `203.0.113.0/24\|198.51.100.0/24` (two distinct ranges) | `ERROR: (1237): Invalid ip address` |
+| `203.0.113.0/24,198.51.100.0/24` (comma separated) | `ERROR: (1237): Invalid ip address` |
+| `203.0.113.0/24` (single range) | accepted; the file still fails on `frequency="1"` |
+
+So the element takes one address, whatever the separator, and this is a property of the
+generated XML rather than of the released data: the pseudonymisation maps both institutional
+ranges onto `203.0.113.0/24`, but the file carrying two distinct ranges is refused with the same
+error.
+
+`results/run*.xml` are the model's raw output, kept as generated because they are the object of
+study. The live path therefore re-measures the one set the engine loads and reads the other
+three from the committed labeled CSVs, which are the record of the campaign; every published
+value is re-derived from those.
