@@ -8,7 +8,7 @@
 # off a dashboard.
 set -euo pipefail
 cd "$(dirname "$0")"
-_T0=$(date +%s)   # o relogio conta a claim inteira, nao so a verificacao final
+_T0=$(date +%s)   # the clock covers the whole claim, not just the final verification
 
 . ./scripts/require.sh
 require_git

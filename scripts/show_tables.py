@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
 """Print the paper's result tables, recomputed here, in the paper's own layout.
 
-The verification pass answers "does every number still hold?" with one PASS line
-per number. That is a verdict, not a result: it never shows Table 2 or Table 3,
-so an evaluator holding the PDF cannot read the outcome off the run. This module
-prints both tables, so the run reports what the paper reports and the two can be
-compared cell by cell, and states in a few lines what they mean.
+Published cell values come from ``expected/paper_tables.json`` and are compared
+at the paper's printed precision, the rule verify_values.py applies. A cell that
+differs is printed as ``recomputed!=paper`` in place of the value. Cells that
+also appear in ``expected/paper_values.json`` are cross-checked against it first.
 
-Cell values come from ``expected/paper_tables.json`` and are compared at the
-paper's printed precision, the same rule verify_values.py applies. A cell that
-differs is printed as ``recomputed!=paper`` in place of the value, so a
-divergence is visible in the table itself and not only in the tally. Cells that
-also appear in ``expected/paper_values.json`` are cross-checked against it first,
-so the two files cannot disagree about what the paper says.
+A cell whose artifact was re-measured through the engine on this machine is
+compared within the same declared tolerance verify_values.py uses, and marked
+``~``.
 
-Usage: show_tables.py [OUT_DIR]
+Usage: show_tables.py [OUT_DIR] [--tolerant ARTIFACT,ARTIFACT]
 """
 
 from __future__ import annotations
@@ -24,7 +20,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from verify_values import matches, resolve  # noqa: E402  (same-directory module)
+from verify_values import (  # noqa: E402  (same-directory module)
+    LIVE_COUNT_TOL, LIVE_RATE_TOL, matches, resolve,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 SEP = "─" * 66
@@ -37,12 +35,7 @@ def _load(out: Path, artifact: str, cache: dict) -> dict:
 
 
 def cross_check(tables: dict, values: list) -> list[str]:
-    """Report cells whose paper value disagrees with expected/paper_values.json.
-
-    Both files state what the paper printed, so a disagreement is a defect in the
-    artifact, not a failed reproduction. Returning the complaints instead of
-    exiting lets the caller print them alongside the rest of the run.
-    """
+    """Report cells whose paper value disagrees with expected/paper_values.json."""
     published = {(c["artifact"], c["path"]): c["expect"] for c in values}
     problems = []
 
@@ -68,27 +61,28 @@ def cross_check(tables: dict, values: list) -> list[str]:
     return problems
 
 
-def _rate(got: object, paper: str) -> tuple[str, bool]:
+def _rate(got: object, paper: str, live: bool = False) -> tuple[str, bool]:
     """Render a rate cell, or "got!=paper" when it does not reproduce."""
-    ok = matches(got, paper)
-    return (f"{float(got):.3f}" if ok else f"{float(got):.3f}!={paper}"), ok
+    ok = matches(got, paper, live)
+    if not ok:
+        return f"{float(got):.3f}!={paper}", False
+    return f"{float(got):.3f}" + ("~" if live else ""), True
 
 
-def _count(got: object, paper: str) -> tuple[str, bool]:
+def _count(got: object, paper: str, live: bool = False) -> tuple[str, bool]:
     """Render a count cell, or "got!=paper" when it does not reproduce."""
-    ok = matches(got, paper)
-    return (str(int(got)) if ok else f"{int(got)}!={paper}"), ok
+    ok = matches(got, paper, live)
+    if not ok:
+        return f"{int(got)}!={paper}", False
+    return str(int(got)) + ("~" if live else ""), True
 
 
 def _grid(corner: str, header: list[str], rows: list[tuple[str, list[str]]],
           label_w: int, width: int) -> list[str]:
     """Lay out one block of a table at a caller-chosen column width.
 
-    A diverging cell is rendered as "recomputed!=paper", which is wider than the
-    value it replaces; a fixed column width silently runs those cells into their
-    neighbour, exactly when the output matters most. The caller sizes `width` to
-    the widest cell across every block of the table, so the blocks stay aligned
-    with each other as well as internally.
+    The caller sizes `width` to the widest cell across every block of the table,
+    since a diverging cell renders wider than the value it replaces.
     """
     out = [f"{corner:<{label_w}}" + "".join(f"{h:>{width}}" for h in header)]
     out += [f"{label:<{label_w}}" + "".join(f"{c:>{width}}" for c in cells)
@@ -96,7 +90,7 @@ def _grid(corner: str, header: list[str], rows: list[tuple[str, list[str]]],
     return out
 
 
-def table2(tables: dict, out: Path, cache: dict) -> tuple[int, int]:
+def table2(tables: dict, out: Path, cache: dict, live: set) -> tuple[int, int]:
     """Print the per-class metrics table; return (cells reproduced, cells shown)."""
     spec = tables["table2"]
     ok_n = total = 0
@@ -104,10 +98,11 @@ def table2(tables: dict, out: Path, cache: dict) -> tuple[int, int]:
     blocks = []
     for cfg in spec["configs"]:
         data = _load(out, cfg["artifact"], cache)
+        tol = cfg["artifact"] in live
         agg = []
         for metric, label in (("accuracy", "accuracy"), ("macro_f1", "macro F1"),
                               ("weighted_f1", "weighted F1")):
-            text, ok = _rate(resolve(data, metric), cfg["aggregate"][metric])
+            text, ok = _rate(resolve(data, metric), cfg["aggregate"][metric], tol)
             agg.append(f"{label} {text}")
             ok_n += ok
             total += 1
@@ -116,7 +111,7 @@ def table2(tables: dict, out: Path, cache: dict) -> tuple[int, int]:
             cells = []
             for metric in ("precision", "recall", "f1"):
                 text, ok = _rate(resolve(data, f"classes.{cls}.{metric}"),
-                                 cfg["classes"][cls][metric])
+                                 cfg["classes"][cls][metric], tol)
                 cells.append(text)
                 ok_n += ok
                 total += 1
@@ -136,7 +131,7 @@ def table2(tables: dict, out: Path, cache: dict) -> tuple[int, int]:
     return ok_n, total
 
 
-def table3(tables: dict, out: Path, cache: dict) -> tuple[int, int]:
+def table3(tables: dict, out: Path, cache: dict, live: set) -> tuple[int, int]:
     """Print the confusion matrices; return (cells reproduced, cells shown)."""
     spec = tables["table3"]
     classes = spec["classes"]
@@ -145,12 +140,13 @@ def table3(tables: dict, out: Path, cache: dict) -> tuple[int, int]:
     blocks = []
     for mat in spec["matrices"]:
         data = _load(out, mat["artifact"], cache)
+        tol = mat["artifact"] in live
         rows = []
         for gold in classes:
             cells = []
             for pred in classes:
                 text, ok = _count(resolve(data, f"confusion.{gold}.{pred}"),
-                                  mat["rows"][gold][pred])
+                                  mat["rows"][gold][pred], tol)
                 cells.append(text)
                 ok_n += ok
                 total += 1
@@ -158,7 +154,7 @@ def table3(tables: dict, out: Path, cache: dict) -> tuple[int, int]:
         footer = None
         omitted = mat.get("omitted")
         if omitted:
-            text, ok = _count(resolve(data, omitted["path"]), omitted["expect"])
+            text, ok = _count(resolve(data, omitted["path"]), omitted["expect"], tol)
             ok_n += ok
             total += 1
             footer = f"plus {text} {omitted['note']}"
@@ -202,7 +198,13 @@ def reading(out: Path, cache: dict) -> None:
 
 
 def main() -> int:
-    out = Path(sys.argv[1] if len(sys.argv) > 1 else "out")
+    argv = sys.argv[1:]
+    live: set[str] = set()
+    if "--tolerant" in argv:
+        i = argv.index("--tolerant")
+        live = {a for a in argv[i + 1].split(",") if a} if i + 1 < len(argv) else set()
+        del argv[i:i + 2]
+    out = Path(argv[0] if argv else "out")
     tables = json.loads((ROOT / "expected/paper_tables.json").read_text(encoding="utf-8"))
     values = json.loads((ROOT / "expected/paper_values.json").read_text(encoding="utf-8"))
 
@@ -213,20 +215,31 @@ def main() -> int:
             print(f"  {p}", file=sys.stderr)
         return 1
 
+    # Only the artifacts the tables actually draw from can carry the ~ mark, so the
+    # legend follows those, not every artifact the run re-measured.
+    shown = {cfg["artifact"] for cfg in tables["table2"]["configs"]}
+    shown |= {mat["artifact"] for mat in tables["table3"]["matrices"]}
+    marked = sorted(live & shown)
+
     cache: dict[str, dict] = {}
     print()
     print(SEP)
     print("  The paper's results, recomputed here. A cell that did not reproduce")
     print("  is printed as `recomputed!=paper` in place of the value.")
+    if marked:
+        print(f"  A cell marked `~` comes from {', '.join(marked)}, re-measured through")
+        print(f"  the engine here, and is compared within the declared tolerance of")
+        print(f"  {LIVE_RATE_TOL} on a rate and {LIVE_COUNT_TOL} on a count.")
     print(SEP)
-    ok2, n2 = table2(tables, out, cache)
+    ok2, n2 = table2(tables, out, cache, live)
     print()
     print(SEP)
-    ok3, n3 = table3(tables, out, cache)
+    ok3, n3 = table3(tables, out, cache, live)
     print()
     print(SEP)
     ok, n = ok2 + ok3, n2 + n3
-    print(f"  {ok} of {n} published cells reproduce exactly "
+    how = "match the paper" if marked else "reproduce exactly"
+    print(f"  {ok} of {n} published cells {how} "
           f"({ok2}/{n2} in Table 2, {ok3}/{n3} in Table 3)")
     print(SEP)
     reading(out, cache)

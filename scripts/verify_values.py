@@ -70,8 +70,8 @@ def main() -> None:
         tol = c["artifact"] in tolerant_artifacts
         if matches(computed, c["expect"], tol):
             passed += 1
-            marca = " ~live" if tol else ""
-            print(f"PASS{marca} {c['id']}: {c['expect']} ({c['source']})")
+            mark = " ~live" if tol else ""
+            print(f"PASS{mark} {c['id']}: {c['expect']} ({c['source']})")
         else:
             failed += 1
             print(f"FAIL {c['id']}: paper={c['expect']} computed={computed} ({c['source']})")

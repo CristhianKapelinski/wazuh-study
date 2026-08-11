@@ -1,12 +1,8 @@
 {
   "_comment": [
-    "The paper's result tables, cell by cell, exactly as printed in the camera-ready.",
-    "scripts/show_tables.py renders them next to the values recomputed on this machine,",
-    "so every number the paper reports can be read off the run and compared with the PDF.",
-    "Values are strings so each cell is compared at the paper's own printed precision,",
-    "the same rule scripts/verify_values.py applies to expected/paper_values.json.",
-    "Cells that also appear in paper_values.json are cross-checked against it at startup,",
-    "so the two files cannot drift apart."
+    "The paper's result tables, cell by cell, as printed in the camera-ready.",
+    "Rendered by scripts/show_tables.py against the values recomputed on this machine.",
+    "Values are strings: each cell is compared at the paper's own printed precision."
   ],
   "table2": {
     "number": "Table 2",

@@ -2,9 +2,9 @@
 
 Replication package for the SBSeg 2026 paper *"Context-Aware SIEM Rule Generation with LLMs: When Site Profiles Are Not Enough"* (Main Track, short paper). An LLM conditioned only on an organization profile writes Wazuh local rules; over a fixed set of 1,000 real SSH authentication events, the LLM-augmented configuration **lowers accuracy by 4.4 percentage points** (weighted F1 by 3.1) relative to the native ruleset, with the regression concentrated in a single failure mode. The package contains the anonymized dataset, the prompts, the four generated rule sets, the per-run labeled CSVs, and the scripts that recompute and verify every number printed in the paper.
 
-> Paper: P. Schafhauzer, C. Kapelinski, M. Pohlmann, D. Kreutz. SBSeg 2026.
+> Authors: Priscila Schafhauzer, Cristhian Kapelinski, Marcio Pohlmann, Diego Kreutz.
 
-> **For the artifact evaluation, this README is the only file you need to read.** The other Markdown files in the repository are complementary: they document internals and go deeper than the review requires.
+> **For the artifact evaluation, this README is the only file you need to read.**
 
 ## README structure
 
@@ -42,7 +42,7 @@ run.sh, Makefile, manager/, rules/   optional full-replay stack
 - **Available (SeloD):** the artifact is public at a stable URL with an open license.
 - **Functional (SeloF):** `./reproduce.sh` runs the whole evaluation pipeline end to end on the committed data in under a second, with no network or Docker.
 - **Sustainable (SeloS):** small typed Python modules with one responsibility each, documented layout, pinned inputs (`expected/checksums.sha256`).
-- **Reproducible (SeloR):** every number printed in the paper (52 checks: metrics, supports, confusion-matrix cells, headline deltas) is recomputed from the committed data and compared at the paper's own precision, and both result tables are reprinted cell by cell (63 cells) so the outcome itself, not only its verdict, comes out of the run; `./reproduce.sh` exits 0 only when all pass.
+- **Reproducible (SeloR):** every number printed in the paper (52 checks: metrics, supports, confusion-matrix cells, headline deltas) is recomputed from the committed data and compared at the paper's own precision. Both result tables are reprinted cell by cell (63 cells). `./reproduce.sh` exits 0 only when all pass.
 
 ## Basic information
 
@@ -73,9 +73,8 @@ run.sh, Makefile, manager/, rules/   optional full-replay stack
   sudo usermod -aG docker "$USER" && newgrp docker
   ```
 
-  Package names differ between distributions and releases; on Fedora, Arch and openSUSE, and on older Ubuntu, follow the upstream instructions instead: [Docker Engine](https://docs.docker.com/engine/install/) and [Compose plugin](https://docs.docker.com/compose/install/linux/). `claim.sh` checks for all three (git, docker, the compose plugin, and a reachable daemon) before doing any work and prints the command for the package manager it finds.
+  Package names differ between distributions and releases; on Fedora, Arch and openSUSE, and on older Ubuntu, follow the upstream instructions instead: [Docker Engine](https://docs.docker.com/engine/install/) and [Compose plugin](https://docs.docker.com/compose/install/linux/).
 
-- **Main path:** Python 3 standard library only; no packages to install.
 - **Data inputs:** all committed and pinned by SHA-256 (`expected/checksums.sha256`): the frozen anonymized sample (`dataset/sample-1000.log`, 1,000 events), the labeled baseline CSV, the four per-run labeled CSVs, and the four LLM-generated rule sets.
 - **Optional full replay:** Docker with the compose plugin; `run.sh` fetches the official `wazuh-docker` stack pinned at **v4.14.5**.
 
@@ -92,19 +91,17 @@ git clone https://github.com/CristhianKapelinski/wazuh-study.git
 cd wazuh-study
 ```
 
-Nothing else to install for the main path.
-
 ## Minimal test
 
-One command exercises the full pipeline (checksum verification → metric recomputation → verification against the paper), 0.15 s on the reference machine:
+One command runs the whole pipeline: checksum verification, metric recomputation, verification against the paper.
 
 ```bash
 ./reproduce.sh
 ```
 
-- **Expected time:** 0.15 s (measured; see *Basic information*).
+- **Expected time:** 0.15 s (measured).
 - **Expected resources:** 13 MB peak RAM, under 10 MB written to `out/`. No network, no Docker.
-- **Expected result:** the checksums verify, the native and LLM metrics are recomputed from the committed labeled CSVs, and all 52 published values are checked against the paper at its own precision, one `PASS <check-id>` line each. The run then prints the paper's two result tables as recomputed here, so the outcome can be read off the run and compared with the PDF cell by cell:
+- **Expected result:** the checksums verify, the native and LLM metrics are recomputed from the committed labeled CSVs, and all 52 published values are checked against the paper at its own precision, one `PASS <check-id>` line each. The run then prints the paper's two result tables as recomputed here:
 
 ```text
   Table 3: Confusion matrices (rows: gold; columns: prediction; ...)
@@ -121,7 +118,7 @@ One command exercises the full pipeline (checksum verification → metric recomp
   63 of 63 published cells reproduce exactly (30/30 in Table 2, 33/33 in Table 3)
 ```
 
-  A cell that did not reproduce is printed as `recomputed!=paper` in place of the value, so a divergence is visible in the table itself. The run ends with the verdict:
+  A cell that did not reproduce is printed as `recomputed!=paper`. The run ends with the verdict:
 
 ```text
 ══════════════════════════════════════════════════════════════════
@@ -142,7 +139,7 @@ One command exercises the full pipeline (checksum verification → metric recomp
 ══════════════════════════════════════════════════════════════════
 ```
 
-  The script exits non-zero if any check fails. `out/summary.json` carries the headline deltas (`"drop_accuracy_pp": 4.4`, `"drop_weighted_f1_pp": 3.1`, `"runs_ab_identical": true`) and `out/summary.csv` reproduces the aggregate columns of Table 2. Every other number in the paper is a field of the same run: per-class precision, recall and F1 in `out/native.json` and `out/run*.json`, and the confusion matrices of Table 3 in their `confusion` fields.
+  The script exits non-zero if any check fails. The per-run metrics land in `out/*.json`, the aggregates in `out/summary.csv`.
 
 ## Experiments
 
@@ -156,10 +153,28 @@ One command exercises the full pipeline (checksum verification → metric recomp
 ./claim.sh
 ```
 
-- **Flags:** none. `claim.sh` writes the `.env` if it is missing, brings the stack up, replays every rule variant, and verifies the paper against the resulting CSVs. The generated `.env` carries random passwords and their bcrypt hashes; `scripts/make-env.sh --force` replaces an existing one.
+- **Flags:** none. The `.env` is generated on first run with random passwords; `scripts/make-env.sh --force` replaces it.
 - **Expected time:** **1m36s measured** on an RTX 5080 workstation with the Wazuh images already pulled; the first run also pulls about 2 GB of images.
 - **Expected resources:** Docker with the compose plugin, ~4 GB RAM, ~5 GB disk.
-- **Expected result:** the same framed block the *Minimal test* prints, ending in `RESULT: OK (52/52 published values match the paper)`, with the provenance line naming how many of the four rule sets were re-measured here. Wazuh 4.14.5 refuses three of the four generated sets, so the usual outcome is `1 of 4 rule sets re-measured`; the refused ones are read from the committed run and named in the output. A re-measured value is compared within a declared tolerance of 0.005 (rates) and 5 (counts) and printed as `PASS ~live`: replaying the engine moves about two of the 1,000 events, which is 0.002 of accuracy. Two replays on the same machine gave 0.586 and 0.590 against the paper's 0.588, which is the spread these bounds are sized for. Everything read from the committed run is compared exactly. Why they are refused, and why they are not edited, is in [`docs/dataset-repair.md`](docs/dataset-repair.md). Step-by-step detail in [`docs/full-replay.md`](docs/full-replay.md).
+- **Expected result:** the two result tables, then the framed verdict. Wazuh 4.14.5 refuses three of the four generated rule sets, so the run names the refused ones and reads them from the committed run; `runC-minimal` is the one it loads:
+
+```text
+   not re-measured (Wazuh refused the rule set): runA-v2 runB-v2 runD-with-logs
+...
+  63 of 63 published cells reproduce exactly (30/30 in Table 2, 33/33 in Table 3)
+...
+  every published value               : 52 pass / 0 fail / 0 skip
+──────────────────────────────────────────────────────────────────
+  source of these numbers             : 1 of 4 rule sets re-measured
+                                        through the engine here (out-full/)
+                                        3 refused by Wazuh, read from the
+                                        committed run
+  wall clock on this machine          : 180 s
+──────────────────────────────────────────────────────────────────
+  RESULT: OK   (52/52 published values match the paper)
+```
+
+  A re-measured value is compared within a declared tolerance of 0.005 on a rate and 5 on a count, and printed as `PASS ~live`; a re-measured table cell is marked `~`. Replaying the engine moves about two of the 1,000 events, which is 0.002 of accuracy: two replays on this machine gave 0.586 and 0.590 for `runC-minimal`, against the 0.588 the paper reports for it. Everything read from the committed run is compared exactly. The refused sets are in [`docs/dataset-repair.md`](docs/dataset-repair.md), the step-by-step in [`docs/full-replay.md`](docs/full-replay.md).
 
 ## Cleaning up
 

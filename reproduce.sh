@@ -79,9 +79,9 @@ echo "$VERIFY"
 read -r P F S <<EOF
 $(printf '%s\n' "$VERIFY" | sed -n 's/^\([0-9]*\) pass \/ \([0-9]*\) fail \/ \([0-9]*\) skip.*/\1 \2 \3/p' | tail -1)
 EOF
-# The tally above says whether the numbers hold; the tables say what they are, which
-# is what an evaluator compares against the PDF.
-python3 scripts/show_tables.py "$OUT" || VRC=1
+# Same --tolerant set as the verification above: a live replay moves about two of the
+# 1,000 events, and the two passes must forgive the same amount.
+python3 scripts/show_tables.py "$OUT" --tolerant "$LIVE_ARTIFACTS" || VRC=1
 SIEM_CLAIM_ELAPSED="${SIEM_CLAIM_ELAPSED:-$(( $(date +%s) - _T0 ))}" \
   python3 scripts/show_claim.py "$OUT" "$SRC" "${P:-0}" "${F:-0}" "${S:-0}" "$LIVE" "$REUSED" || VRC=1
 exit "$VRC"
