@@ -154,7 +154,7 @@ One command runs the whole pipeline: checksum verification, metric recomputation
 ```
 
 - **Flags:** none. The `.env` is generated on first run with random passwords; `scripts/make-env.sh --force` replaces it.
-- **Expected time:** **1m36s measured** on an RTX 5080 workstation with the Wazuh images already pulled; the first run also pulls about 2 GB of images.
+- **Expected time:** **105 s measured** on the reference machine with the Wazuh images already pulled, and 1m36s on an RTX 5080 workstation. The first run also pulls about 2 GB of images: 180 s here on a fast link. A slower link dominates the total.
 - **Expected resources:** Docker with the compose plugin, ~4 GB RAM, ~5 GB disk.
 - **Expected result:** the two result tables, then the framed verdict. Wazuh 4.14.5 refuses three of the four generated rule sets, so the run names the refused ones and reads them from the committed run; `runC-minimal` is the one it loads:
 
@@ -169,7 +169,7 @@ One command runs the whole pipeline: checksum verification, metric recomputation
                                         through the engine here (out-full/)
                                         3 refused by Wazuh, read from the
                                         committed run
-  wall clock on this machine          : 180 s
+  wall clock on this machine          : 105 s
 ──────────────────────────────────────────────────────────────────
   RESULT: OK   (52/52 published values match the paper)
 ```
