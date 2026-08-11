@@ -15,6 +15,14 @@ H="${MANAGER_HOST:-}"
 rexec(){ if [ -z "$H" ]; then bash -c "$*"; else ssh "$H" "$*"; fi; }
 rcopy(){ if [ -z "$H" ]; then cp "$1" "$2"; else scp -q "$1" "$H:$2"; fi; }
 
+# rules/local_rules.xml is tracked, and the loop below overwrites it once per
+# variant. Put the committed baseline placeholder back on the way out, however the
+# run ends, so a replay does not leave the working tree modified.
+SLOT="rules/local_rules.xml"
+SLOT_SAVED="$(cat "$SLOT")"
+restore_slot(){ printf '%s\n' "$SLOT_SAVED" > "$SLOT"; }
+trap restore_slot EXIT
+
 for R in "${RUNS[@]}"; do
   echo "============ $R ============"
   rcopy "results/$R.xml" rules/local_rules.xml
