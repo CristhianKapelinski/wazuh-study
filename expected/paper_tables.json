@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "The paper's result tables, cell by cell, as printed in the camera-ready.",
+    "The paper's result tables, cell by cell, as printed in the paper.",
     "Rendered by scripts/show_tables.py against the values recomputed on this machine.",
     "Values are strings: each cell is compared at the paper's own printed precision."
   ],
