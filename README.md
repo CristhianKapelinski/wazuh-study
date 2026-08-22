@@ -15,8 +15,8 @@ Replication package for the SBSeg 2026 paper *"Context-Aware SIEM Rule Generatio
 | [Dependencies](#dependencies) | Pinned software and data inputs |
 | [Security concerns](#security-concerns) | What runs where |
 | [Installation](#installation) | Clone; nothing else for the main path |
-| [Minimal test](#minimal-test) | One command, < 1 s |
-| [Experiments](#experiments) | Claim #1: replay through the Wazuh engine (Docker) |
+| [Minimal test](#minimal-test) | One command, under half a second: its five steps, its expected output, and what the 52 checks are |
+| [Experiments](#experiments) | What to run in which order, and Claim #1: replay through the Wazuh engine (Docker) |
 | [Cleaning up](#cleaning-up) | One command removes what a run created |
 | [Citation](#citation) | How to cite the paper |
 | [LICENSE](#license) | MIT |
@@ -93,18 +93,115 @@ cd wazuh-study
 
 ## Minimal test
 
-One command runs the whole pipeline: checksum verification, metric recomputation, verification against the paper.
+`./reproduce.sh` is both the minimal test and the whole offline evaluation: it verifies the pinned inputs, recomputes every metric from the committed labeled CSVs, checks each recomputed number against the value printed in the paper, and reprints the paper's two result tables from what it has just computed.
 
 ```bash
-./reproduce.sh
+./reproduce.sh          # equivalently: make reproduce
 ```
 
-- **Expected time:** 0.15 s (measured).
-- **Expected resources:** 13 MB peak RAM, under 10 MB written to `out/`. No network, no Docker.
-- **Expected result:** the checksums verify, the native and LLM metrics are recomputed from the committed labeled CSVs, and all 52 published values are checked against the paper at its own precision, one `PASS <check-id>` line each. The run then prints the paper's two result tables as recomputed here:
+| Item | Value |
+|---|---|
+| Time | **under 0.5 s**: 0.21 s to 0.44 s measured across fifteen runs on the reference machine, the spread being machine load rather than work |
+| Peak RAM | 13 MB, measured |
+| Written to disk | 12 files, 11 KB in total, all inside `out/` |
+| Needs | `python3` 3.8 or newer and `sha256sum` (or `shasum`). No network, no Docker, no `sudo`, no configuration, no arguments |
+| Exit code | 0 when every check passes, non-zero as soon as one does not |
+
+### The five steps
+
+Each step announces itself with a `==` header, so a step that fails is identifiable from the screen alone.
+
+| # | Printed header | What happens in it | Time |
+|---|---|---|---|
+| 1 | none, it is silent when it succeeds | Preflight: `python3` exists and is at least 3.8, and `sha256sum` or `shasum` exists. A missing tool aborts here with the install command for it, instead of failing three steps later inside a script. | 0.03 s |
+| 2 | `== verifying dataset checksums ==` | `sha256sum -c expected/checksums.sha256` over the ten pinned inputs: the frozen 1,000-event sample, the labeled baseline CSV, the four per-run labeled CSVs and the four generated rule sets. One `<file>: OK` line each. A mismatch stops the run before any metric is computed, because a changed input would make every later number meaningless. | under 0.01 s |
+| 3 | `== recomputing metrics ==` | `scripts/metrics.py` runs five times, once for the native baseline and once per LLM run. Each time it builds the gold-by-prediction confusion matrix from the CSV, dropping the manager's own `ossec:` self-events, and derives accuracy, macro F1, weighted F1 and per-class precision, recall, F1 and support into `out/<run>.json`. One line then names the four runs read from the committed run of record, since this path replays nothing. `scripts/summarize.py` writes `out/summary.csv` and prints the headline deltas as a one-line JSON. | 0.1 s |
+| 4 | `== verifying against the paper ==` | `scripts/verify_values.py` walks the 52 entries of `expected/paper_values.json`, printing one `PASS` or `FAIL` line per entry and then the tally. | 0.02 s |
+| 5 | none, the output is framed instead | `scripts/show_tables.py` reprints Tables 2 and 3 cell by cell, reports how many published cells reproduced, and reads the result in three bullets. `scripts/show_claim.py` closes with the framed verdict and sets the exit code. | 0.04 s |
+
+### What the `52 pass / 0 fail / 0 skip` line stands for
+
+The tally is not the summary of a hidden test suite. It counts one entry per number the paper prints, all of them listed in `expected/paper_values.json`, and every entry also prints its own line just above the tally, naming the check, the published value and where the paper states it:
 
 ```text
-  Table 3: Confusion matrices (rows: gold; columns: prediction; ...)
+PASS native-accuracy: 0.633 (Sec. 5.1)
+PASS llmA-cm-medium-high: 45 (Table 3, LLM-A / Sec. 5.2)
+```
+
+Each entry names the recomputed JSON to read, the dotted path to the value inside it, the value exactly as printed in the paper, and the paper section or table it comes from. The comparison is made at the paper's own printed precision: `0.633` is compared to three decimals and a count is compared exactly, so a recomputation that drifts in the fourth decimal still passes while a regression in the third does not. The 52 entries cover:
+
+| What is verified | Checks |
+|---|---|
+| Sample size after the self-event filter, `n = 1000` | 1 |
+| Aggregate metrics: accuracy, macro F1, weighted F1 | 13 |
+| Per-class precision, recall and F1 | 17 |
+| Class supports: none 644, low 92, medium 249, high 15 | 4 |
+| Confusion-matrix cells | 15 |
+| Headline deltas: 4.4 pp of accuracy, 3.1 pp of weighted F1 | 2 |
+| **Total** | **52** |
+
+Per configuration, that is 26 checks on the native ruleset, 16 on LLM run A, 2 on run B, 4 on run C (minimal prompt), 2 on run D (with logs), and 2 on the cross-run summary. The framed verdict at the end restates two of them, the two deltas, and adds one value the list does not carry: whether the metrics of runs A and B come out identical. Separately from the 52, step 5 compares all 63 cells the paper prints in its two tables, 30 in Table 2 and 33 in Table 3.
+
+### Expected output
+
+Verbatim, with the middle of the check list elided:
+
+```text
+== verifying dataset checksums ==
+dataset/sample-1000.log: OK
+dataset/dataset-1000-baseline.csv: OK
+results/results-runA-v2/dataset.csv: OK
+results/results-runB-v2/dataset.csv: OK
+results/results-runC-minimal/dataset.csv: OK
+results/results-runD-with-logs/dataset.csv: OK
+results/runA-v2.xml: OK
+results/runB-v2.xml: OK
+results/runC-minimal.xml: OK
+results/runD-with-logs.xml: OK
+== recomputing metrics ==
+   read from the committed run (this path replays nothing): runA-v2 runB-v2 runC-minimal runD-with-logs
+{"drop_accuracy_pp": 4.4, "drop_weighted_f1_pp": 3.1, "runs_ab_identical": true}
+== verifying against the paper ==
+PASS native-n: 1000 (Sec. 3.1, sample size)
+PASS native-accuracy: 0.633 (Sec. 5.1)
+PASS native-weighted-f1: 0.695 (Sec. 5.1 / Table 2)
+PASS native-macro-f1: 0.486 (Table 2)
+   [... 47 further PASS lines, one per published value ...]
+PASS drop-weighted-f1-pp: 3.1 (Abstract / Sec. 5.2 / Sec. 7)
+
+52 pass / 0 fail / 0 skip
+
+──────────────────────────────────────────────────────────────────
+  The paper's results, recomputed here. A cell that did not reproduce
+  is printed as `recomputed!=paper` in place of the value.
+──────────────────────────────────────────────────────────────────
+  Table 2: Per-class metrics: native Wazuh vs. the LLM configuration (runs A/B).
+
+    Native
+      accuracy 0.633,  macro F1 0.486,  weighted F1 0.695
+      class         P      R     F1
+      none      1.000  0.581  0.735
+      low       0.000  0.000  0.000
+      medium    0.729  0.992  0.840
+      high      0.923  0.800  0.857
+
+    LLM (runs A/B)
+      accuracy 0.589,  macro F1 0.362,  weighted F1 0.665
+      class         P      R     F1
+      none      1.000  0.581  0.735
+      low       0.000  0.000  0.000
+      medium    0.693  0.815  0.749
+      high      0.203  0.800  0.324
+
+──────────────────────────────────────────────────────────────────
+  Table 3: Confusion matrices (rows: gold; columns: prediction; the near-empty critical column is omitted).
+
+    Native Wazuh
+      gold \ pred     none     low  medium    high
+      none             374     270       0       0
+      low                0       0      92       0
+      medium             0       1     247       1
+      high               0       3       0      12
 
     LLM run A
       gold \ pred     none     low  medium    high
@@ -116,11 +213,11 @@ One command runs the whole pipeline: checksum verification, metric recomputation
 
 ──────────────────────────────────────────────────────────────────
   63 of 63 published cells reproduce exactly (30/30 in Table 2, 33/33 in Table 3)
-```
+──────────────────────────────────────────────────────────────────
+  Reading the tables
+   [... three bullets reading the result: where the regression is,
+        and where it is not ...]
 
-  A cell that did not reproduce is printed as `recomputed!=paper`. The run ends with the verdict:
-
-```text
 ══════════════════════════════════════════════════════════════════
   Claim: the LLM-augmented ruleset trails the native baseline, and the
          two identical runs agree
@@ -139,9 +236,30 @@ One command runs the whole pipeline: checksum verification, metric recomputation
 ══════════════════════════════════════════════════════════════════
 ```
 
-  The script exits non-zero if any check fails. The per-run metrics land in `out/*.json`, the aggregates in `out/summary.csv`.
+### How the reader knows it worked
+
+Four signals, none of which requires trusting the others:
+
+- Every line of step 4 begins with `PASS`. A value that misses prints `FAIL <check-id>: paper=<published> computed=<recomputed>`, so a failure names the number and the discrepancy rather than only the count.
+- The tally reads `52 pass / 0 fail / 0 skip`. A non-zero `skip` would mean a metrics JSON was missing, which on this path means step 3 did not finish.
+- The table check reads `63 of 63 published cells reproduce exactly (30/30 in Table 2, 33/33 in Table 3)`, and no cell in the printed tables reads `recomputed!=paper`.
+- The last line of the frame reads `RESULT: OK   (52/52 published values match the paper)`, and `echo $?` immediately after the run prints `0`. Any failed check flips this to `RESULT: FAIL` and a non-zero exit status.
+
+The `wall clock on this machine` line inside the frame counts whole seconds, so a run this fast reports `0 s`; use `time ./reproduce.sh` to see the fraction of a second it actually took.
+
+### What the run leaves behind
+
+Everything lands in `out/` and nothing is written outside it: `native.json` plus one `<run>.json` per LLM run, each holding the full recomputed metrics including the confusion matrix, the same content as human-readable `.txt`, `summary.csv` with one row per configuration, and `summary.json` with the headline deltas. `./cleanup.sh` removes the directory, and `./cleanup.sh --dry-run` lists what it would remove first.
 
 ## Experiments
+
+The artifact has one claim, and three commands in this order run it end to end. Only the first is needed for the minimal test; the second is the claim itself; the third gives the machine back.
+
+| Order | Command | Time | What to expect from it |
+|---|---|---|---|
+| 1 | `./reproduce.sh` | under 0.5 s | The minimal test above. Run it first: it proves the inputs are intact and the pipeline works before any container is started, so a later failure can be attributed to the replay and not to the clone. |
+| 2 | `./claim.sh` | 105 s, plus about 180 s of image pull on the first run | Claim #1, measured live. Three announced stages, then the same framed verdict as step 1, with the provenance line saying the numbers were measured here. |
+| 3 | `./cleanup.sh` | seconds | Removes the containers, the compose stack, the engine state and the generated `.env`, and reports what it freed. `--dry-run` lists it without removing anything. It never touches anything tracked by git. |
 
 ### Claim #1 (main): the LLM-augmented ruleset trails the native baseline by 4.4 pp of accuracy and 3.1 pp of weighted F1, and the two identical runs agree
 
@@ -152,6 +270,14 @@ One command runs the whole pipeline: checksum verification, metric recomputation
 ```bash
 ./claim.sh
 ```
+
+**Its three stages,** each announced on screen, so a long run is never a silent one:
+
+| Stage | Printed header | What happens in it |
+|---|---|---|
+| 1 | `== [1/3] bringing the stack up and ingesting the 1,000 events ==` | Preflight for `git`, `docker` and the compose plugin, each with the install command for your package manager if it is missing; `.env` generated with random passwords if absent; then `./run.sh --fresh` pulls Wazuh 4.14.5, starts the stack and feeds it the frozen sample from line 1. Ends with a framed box giving the dashboard URL, the credentials and the SSH alert count. |
+| 2 | `== [2/3] replaying every rule variant through the engine (~3-5 min each) ==` | For each of the four rule sets: load it, wait for `wazuh-analysisd`, replay the 1,000 events, wait for the whole feed to drain, and write a freshly labeled `out-full/results-<run>/dataset.csv`. A rule set the engine refuses prints `FAILED: Wazuh refused <run>.xml` and is skipped rather than silently inheriting the previous variant's numbers. |
+| 3 | `== [3/3] verifying the paper against what the engine just produced ==` | `./reproduce.sh --out out-live --from out-full`, that is exactly the five steps of the minimal test, reading the fresh CSVs instead of the committed ones. |
 
 - **Flags:** none. The `.env` is generated on first run with random passwords; `scripts/make-env.sh --force` replaces it.
 - **Expected time:** **105 s measured** on the reference machine with the Wazuh images already pulled, and 1m36s on an RTX 5080 workstation. The first run also pulls about 2 GB of images: 180 s here on a fast link. A slower link dominates the total.

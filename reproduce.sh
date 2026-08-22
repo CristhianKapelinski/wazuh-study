@@ -68,7 +68,15 @@ for RUN in runA-v2 runB-v2 runC-minimal runD-with-logs; do
   python3 scripts/metrics.py "$CSV" \
     severidade_manual severidade_wazuh_llm --json "$OUT/$RUN.json" > "$OUT/$RUN.txt"
 done
-[ -n "$REUSED_LIST" ] && echo "   not re-measured (Wazuh refused the rule set):$REUSED_LIST"
+# Name the reason, not just the list. On the default path nothing was replayed at all, so
+# blaming Wazuh there would send an evaluator hunting for a failure that never happened.
+if [ -n "$REUSED_LIST" ]; then
+  if [ "$SRC" != results ]; then
+    echo "   not re-measured (Wazuh refused the rule set):$REUSED_LIST"
+  else
+    echo "   read from the committed run (this path replays nothing):$REUSED_LIST"
+  fi
+fi
 python3 scripts/summarize.py "$OUT"
 
 echo "== verifying against the paper =="
