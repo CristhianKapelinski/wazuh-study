@@ -87,7 +87,7 @@ run.sh, Makefile, manager/, rules/   optional full-replay stack
 ## Installation
 
 ```bash
-git clone https://gitlab.com/cristhianavila.aluno/wazuh-study.git
+git clone https://github.com/CristhianKapelinski/wazuh-study.git
 cd wazuh-study
 ```
 

@@ -29,7 +29,7 @@ abstract: >-
   rule sets, the per-run labeled CSVs, and the scripts that recompute and
   verify every number printed in the paper.
 license: MIT
-repository-code: "https://gitlab.com/cristhianavila.aluno/wazuh-study"
+repository-code: "https://github.com/CristhianKapelinski/wazuh-study"
 keywords:
   - siem
   - wazuh
