@@ -1,5 +1,18 @@
 # wazuh-study: Context-Aware SIEM Rule Generation with LLMs
 
+<p align="center">
+  <a href="https://doc-artefatos.github.io/sbseg2026/results.html">
+    <img src="docs/assets/seals/SBRC25_SF_SeloD.png" alt="Artefatos Disponíveis / Available (SeloD)" width="110">
+    <img src="docs/assets/seals/SBRC25_SF_SeloF.png" alt="Artefatos Funcionais / Functional (SeloF)" width="110">
+    <img src="docs/assets/seals/SBRC25_SF_SeloS.png" alt="Artefatos Sustentáveis / Sustainable (SeloS)" width="110">
+    <img src="docs/assets/seals/SBRC25_SF_SeloR.png" alt="Experimentos Reprodutíveis / Reproducible (SeloR)" width="110">
+  </a>
+</p>
+
+<p align="center"><sub>Official SBSeg 2026 artifact-evaluation seals awarded to this artifact (Main Track): Available, Functional, Sustainable and Reproducible. <a href="https://doc-artefatos.github.io/sbseg2026/results.html">Official results</a>. Seal artwork by the SBSeg Artifact Evaluation Committee.</sub></p>
+
+> **Published** in the Anais do XXVI Simpósio Brasileiro de Cibersegurança (SBSeg 2026), pp. 1370-1376: [SBC OpenLib](https://sol.sbc.org.br/index.php/sbseg/article/view/44366).
+
 Replication package for the SBSeg 2026 paper *"Context-Aware SIEM Rule Generation with LLMs: When Site Profiles Are Not Enough"* (Main Track, short paper). An LLM conditioned only on an organization profile writes Wazuh local rules; over a fixed set of 1,000 real SSH authentication events, the LLM-augmented configuration **lowers accuracy by 4.4 percentage points** (weighted F1 by 3.1) relative to the native ruleset, with the regression concentrated in a single failure mode. The package contains the anonymized dataset, the prompts, the four generated rule sets, the per-run labeled CSVs, and the scripts that recompute and verify every number printed in the paper.
 
 > Authors: Priscila Schafhauzer, Cristhian Kapelinski, Marcio Pohlmann, Diego Kreutz.
@@ -320,7 +333,9 @@ Priscila Schafhauzer, Cristhian Kapelinski, Marcio Pohlmann and Diego Kreutz. *C
 @inproceedings{schafhauzer2026siem,
   author    = {Schafhauzer, Priscila and Kapelinski, Cristhian and Pohlmann, Marcio and Kreutz, Diego},
   title     = {Context-Aware {SIEM} Rule Generation with {LLMs}: When Site Profiles Are Not Enough},
-  booktitle = {Simp\'osio Brasileiro de Seguran\c{c}a da Informa\c{c}\~ao e de Sistemas Computacionais (SBSeg)},
+  booktitle = {Anais do XXVI Simp\'osio Brasileiro de Ciberseguran\c{c}a (SBSeg 2026)},
+  pages     = {1370--1376},
+  url       = {https://sol.sbc.org.br/index.php/sbseg/article/view/44366},
   year      = {2026}
 }
 ```
